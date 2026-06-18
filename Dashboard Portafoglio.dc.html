@@ -713,6 +713,8 @@ class Component extends DCLogic {
   eur0(v) { return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, useGrouping: 'always' }).format(v || 0); }
   pct(v)  { return (v >= 0 ? '+' : '') + (v || 0).toFixed(2).replace('.', ',') + '%'; }
   num(v)  { return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 4, useGrouping: 'always' }).format(v || 0); }
+  // Per obbligazioni il prezzo è in % del nominale → dividi per 100
+  eff(cls, qty, price) { return cls === 'Obbligazioni' ? qty * price / 100 : qty * price; }
   ini(s)  { return (s || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '?'; }
 
   // ── Market helpers ─────────────────────────────────────────────────────────
@@ -732,12 +734,12 @@ class Component extends DCLogic {
       const m = this.getMkt(t.ticker, t);
       const h = H[t.ticker] || (H[t.ticker] = { ticker: t.ticker, name: m.name, cls: m.cls, isin: m.isin || '', qty: 0, cost: 0 });
       const q = Number(t.qty) || 0, p = Number(t.price) || 0, f = Number(t.fees) || 0;
-      if (t.type === 'Acquisto') { h.qty += q; h.cost += q * p + f; }
+      if (t.type === 'Acquisto') { h.qty += q; h.cost += this.eff(m.cls, q, p) + f; }
       else { const avg = h.qty > 0 ? h.cost / h.qty : 0; h.cost -= avg * q; h.qty -= q; }
     }
     return Object.values(H).filter(h => h.qty > 1e-9).map(h => {
       const m = this.getMkt(h.ticker);
-      const price = m.price, day = m.day || 0, avg = h.cost / h.qty, value = h.qty * price, pl = value - h.cost;
+      const price = m.price, day = m.day || 0, avg = h.cost / h.qty, value = this.eff(h.cls, h.qty, price), pl = value - h.cost;
       const plPct = h.cost > 0 ? pl / h.cost * 100 : 0, dayVal = value - value / (1 + day / 100);
       return { ...h, price, day, avg, value, pl, plPct, dayVal, color: this.CLS[h.cls] || '#5A6678' };
     });
@@ -1020,10 +1022,10 @@ class Component extends DCLogic {
       const m = this.getMkt(t.ticker, t);
       const h = H[t.ticker] || (H[t.ticker] = { qty: 0, cost: 0 });
       const qn = Number(t.qty) || 0, p = Number(t.price) || 0, f = Number(t.fees) || 0;
-      if (t.type === 'Acquisto') { h.qty += qn; h.cost += qn * p + f; }
+      if (t.type === 'Acquisto') { h.qty += qn; h.cost += this.eff(m.cls, qn, p) + f; }
       else {
         const carico = h.qty > 0 ? h.cost / h.qty : 0;
-        const totale = qn * p, quotaInteressi = qn * carico, quotaCapitale = totale - quotaInteressi;
+        const totale = this.eff(m.cls, qn, p), quotaInteressi = qn * carico, quotaCapitale = totale - quotaInteressi;
         const rate = (t.aliquota != null && t.aliquota !== '') ? Number(t.aliquota) : (m.cls === 'Obbligazioni' ? 12.5 : 26);
         const tax = Math.max(0, quotaCapitale) * rate / 100, netto = quotaCapitale - tax;
         out[t.id] = { carico, totale, quotaInteressi, quotaCapitale, rate, tax, netto };
@@ -1190,7 +1192,7 @@ class Component extends DCLogic {
         badgeBg: buy ? 'rgba(63,214,140,0.13)' : 'rgba(242,89,107,0.13)', badgeFg: buy ? G : R,
         ticker: t.ticker, name: m.name, color: this.CLS[m.cls] || '#5A6678', initials: this.ini(t.ticker),
         qtyFmt:   this.num(t.qty),   priceFmt: this.eur(t.price),
-        totalFmt: this.eur0(Number(t.qty) * Number(t.price)), feesFmt: this.eur(t.fees), broker: t.broker || '—',
+        totalFmt: this.eur0(this.eff(m.cls, Number(t.qty), Number(t.price))), feesFmt: this.eur(t.fees), broker: t.broker || '—',
         rowCursor: buy ? 'default' : 'pointer',
         expanded:  exp, chevRot: exp ? 'rotate(90deg)' : 'rotate(0deg)',
         toggle: buy ? (() => {}) : (() => this.setState(s => ({ expandedTx: s.expandedTx === t.id ? null : t.id }))),
@@ -1225,7 +1227,7 @@ class Component extends DCLogic {
               type: t.type,
               badgeBg: buy ? 'rgba(63,214,140,0.13)' : 'rgba(242,89,107,0.13)', badgeFg: buy ? G : R,
               qtyFmt: this.num(t.qty), priceFmt: this.eur(t.price),
-              totalFmt: this.eur0(Number(t.qty) * Number(t.price)), broker: t.broker || '—',
+              totalFmt: this.eur0(this.eff(h.cls, Number(t.qty), Number(t.price))), broker: t.broker || '—',
             };
           });
         assetDetail = {
