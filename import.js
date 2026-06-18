@@ -1,6 +1,6 @@
 // CSV import — DEGIRO (altri broker da aggiungere)
 
-// ── ISIN → ticker per ETF comuni ─────────────────────────────────────────────
+// ── ISIN → ticker per ETF e titoli comuni ────────────────────────────────────
 const _ISIN_TICKER = {
   // iShares
   'IE00B4L5Y983': 'IWDA',  'IE00BKM4GZ66': 'EIMI',  'IE00B5BMR087': 'CSPX',
@@ -17,14 +17,13 @@ const _ISIN_TICKER = {
   // Azioni singole comuni
   'NL0010273215': 'ASML',  'US67066G1040': 'NVDA',  'US0378331005': 'AAPL',
   'US38259P5089': 'GOOG',  'US5949181045': 'MSFT',  'US4592001014': 'IBM',
-  // ETF obbligazionari
-  'IE00B3F81R35': 'INRG',
   // Crypto ETP
   'XS2376095068': 'BTC',   'CH0454664001': 'ABTC',
-  // Materie prime
+  // Materie prime / ETC
   'DE000A0S9GB0': 'GOLD',  'GB00B00FHZ82': 'PHAU',
-  // BTP / bond italiani
+  // Obbligazioni governative
   'IT0005209493': 'BTP30',
+  'AT0000A2HLC4': 'OEAT',  // Austria 100 anni 2120
 };
 
 // ── Rilevamento classe da nome prodotto ────────────────────────────────────────
@@ -34,6 +33,7 @@ function _detectClass(name) {
   if (/OVERNIGHT|MONEY.MARKET|LIQUIDITY|CASH|ESTR/.test(n))                     return 'Liquidità';
   if (/BITCOIN|ETHEREUM|CRYPTO|\bBTC\b|\bETH\b/.test(n))                        return 'Criptovalute';
   if (/\bGOLD\b|SILVER|OIL|COMMODITY|METAL|\bGAS\b/.test(n))                   return 'Materie prime';
+  if (/UCITS|ETF\b|\bETC\b|\bETN\b/.test(n))                                   return 'ETF';
   return 'Azioni';
 }
 
@@ -55,7 +55,14 @@ function _itNum(s) {
   return parseFloat(String(s || '0').replace(',', '.')) || 0;
 }
 
-// Data DEGIRO: "21-11-2025" → "2025-11-21"
+// Data DB (YYYY-MM-DD) → display italiano (DD/MM/YYYY)
+function _fmtDateIT(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// Data DEGIRO "21-11-2025" → ISO "2025-11-21"
 function _degiroDate(s) {
   const p = (s || '').trim().split('-');
   return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : s;
@@ -69,22 +76,24 @@ function parseDegiroCSV(text) {
     const c = _csvLine(lines[i]);
     if (!c[2] || !c[3]) continue;
     const rawQty = _itNum(c[6]);
-    if (rawQty === 0) continue;                // salta righe non-trade
+    if (rawQty === 0) continue;
     const isin = c[3].trim();
     const name = c[2].trim();
-    const cls  = _detectClass(name);
+    const qty  = Math.abs(rawQty);
+    const price = Math.abs(_itNum(c[7]));
     rows.push({
       _sel: true,
-      date:     _degiroDate(c[0]),
-      type:     rawQty > 0 ? 'Acquisto' : 'Vendita',
-      name, isin, cls,
-      ticker:   _ISIN_TICKER[isin] || '',
-      qty:      Math.abs(rawQty),
-      price:    Math.abs(_itNum(c[7])),
-      fees:     Math.abs(_itNum(c[14])),
-      currency: 'EUR',
-      broker:   'DEGIRO',
-      note:     '',
+      date:         _degiroDate(c[0]),
+      type:         rawQty > 0 ? 'Acquisto' : 'Vendita',
+      name, isin,
+      cls:          _detectClass(name),
+      ticker:       _ISIN_TICKER[isin] || '',
+      qty, price,
+      fees:         Math.abs(_itNum(c[14])),
+      controvalore: qty * price,
+      currency:     'EUR',
+      broker:       'DEGIRO',
+      note:         '',
     });
   }
   return rows;
@@ -96,7 +105,7 @@ function detectAndParse(text) {
   if (h.includes('id ordine') || h.includes('prodotto') || h.includes('borsa di riferimento')) {
     return { rows: parseDegiroCSV(text), broker: 'DEGIRO' };
   }
-  return null; // formato non riconosciuto
+  return null;
 }
 
-window.IMPORT = { detectAndParse };
+window.IMPORT = { detectAndParse, fmtDateIT: _fmtDateIT };

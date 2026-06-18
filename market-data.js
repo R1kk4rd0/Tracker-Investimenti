@@ -15,6 +15,7 @@ window.MARKET_DATA = {
 // Colori per classe asset
 window.CLS_COLORS = {
   'Azioni':        '#5B9DF9',
+  'ETF':           '#38BDF8',
   'Criptovalute':  '#A78BFA',
   'Obbligazioni':  '#14B8A6',
   'Materie prime': '#E5B567',

@@ -516,37 +516,44 @@
       </div>
       <div style="display:flex;padding:10px 28px;font-size:11px;color:#7b8499;font-weight:700;letter-spacing:.04em;border-bottom:1px solid rgba(255,255,255,0.05);flex:none">
         <div style="width:34px"></div>
-        <div style="width:96px">DATA</div>
-        <div style="width:90px">TIPO</div>
-        <div style="flex:1">PRODOTTO</div>
-        <div style="width:116px">TICKER *</div>
-        <div style="width:120px">CLASSE</div>
-        <div style="width:66px;text-align:right">QTÀ</div>
-        <div style="width:90px;text-align:right">PREZZO</div>
-        <div style="width:72px;text-align:right">COMM.</div>
+        <div style="width:90px">DATA</div>
+        <div style="width:88px">TIPO</div>
+        <div style="flex:1">PRODOTTO / ISIN</div>
+        <div style="width:110px">TICKER *</div>
+        <div style="width:118px">CLASSE</div>
+        <div style="width:58px;text-align:right">QTÀ</div>
+        <div style="width:82px;text-align:right">PREZZO</div>
+        <div style="width:96px;text-align:right">CONTROV.</div>
+        <div style="width:64px;text-align:right">COMM.</div>
+        <div style="width:70px;text-align:right">BROKER</div>
       </div>
       <div style="flex:1;overflow-y:auto">
         <sc-for list="{{ importPreviewRows }}" as="r" hint-placeholder-count="8">
-          <div style="display:flex;align-items:center;padding:9px 28px;border-bottom:1px solid rgba(255,255,255,0.03);opacity:{{ r.rowOpacity }}">
+          <div style="display:flex;align-items:center;padding:8px 28px;border-bottom:1px solid rgba(255,255,255,0.03);opacity:{{ r.rowOpacity }}">
             <div onClick="{{ r.onToggle }}" style="width:34px;cursor:pointer">
               <div style="width:18px;height:18px;border-radius:5px;border:1.5px solid {{ r.checkBorder }};background:{{ r.checkBg }};display:flex;align-items:center;justify-content:center">
                 <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="{{ r.checkFg }}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
             </div>
-            <div style="width:96px;font-size:12.5px;color:#cdd4e0">{{ r.dateStr }}</div>
-            <div style="width:90px"><span style="font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:6px;background:{{ r.typeBg }};color:{{ r.typeFg }}">{{ r.type }}</span></div>
-            <div style="flex:1;font-size:12px;color:#8A93A6;padding-right:14px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="{{ r.name }}">{{ r.nameShort }}</div>
-            <div style="width:116px">
+            <div style="width:90px;font-size:12.5px;color:#cdd4e0">{{ r.dateStr }}</div>
+            <div style="width:88px"><span style="font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;background:{{ r.typeBg }};color:{{ r.typeFg }}">{{ r.type }}</span></div>
+            <div style="flex:1;padding-right:12px;overflow:hidden">
+              <div style="font-size:12px;color:#cdd4e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="{{ r.name }}">{{ r.nameShort }}</div>
+              <div style="font-size:10.5px;color:#4d5567;margin-top:2px;font-variant-numeric:tabular-nums">{{ r.isin }}</div>
+            </div>
+            <div style="width:110px">
               <input value="{{ r.ticker }}" onInput="{{ r.onTicker }}" placeholder="es. EIMI" style="width:100%;background:{{ r.tickerBg }};border:1.5px solid {{ r.tickerBorder }};border-radius:7px;padding:5px 8px;color:#E8ECF4;font-size:13px;font-weight:700;text-transform:uppercase;font-family:inherit;outline:none;box-sizing:border-box"/>
             </div>
-            <div style="width:120px;padding-left:8px">
+            <div style="width:118px;padding-left:8px">
               <select value="{{ r.cls }}" onChange="{{ r.onCls }}" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:5px 6px;color:#E8ECF4;font-size:12px;font-family:inherit;outline:none">
-                <option>Azioni</option><option>Obbligazioni</option><option>Criptovalute</option><option>Materie prime</option><option>Liquidità</option>
+                <option>ETF</option><option>Azioni</option><option>Obbligazioni</option><option>Criptovalute</option><option>Materie prime</option><option>Liquidità</option>
               </select>
             </div>
-            <div style="width:66px;text-align:right;font-size:13px;font-variant-numeric:tabular-nums;color:#cdd4e0">{{ r.qtyStr }}</div>
-            <div style="width:90px;text-align:right;font-size:12.5px;font-variant-numeric:tabular-nums;color:#cdd4e0">{{ r.priceStr }}</div>
-            <div style="width:72px;text-align:right;font-size:12px;color:#7b8499">{{ r.feesStr }}</div>
+            <div style="width:58px;text-align:right;font-size:12.5px;font-variant-numeric:tabular-nums;color:#cdd4e0">{{ r.qtyStr }}</div>
+            <div style="width:82px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums;color:#cdd4e0">{{ r.priceStr }}</div>
+            <div style="width:96px;text-align:right;font-size:12.5px;font-variant-numeric:tabular-nums;font-weight:600;color:#E8ECF4">{{ r.contrStr }}</div>
+            <div style="width:64px;text-align:right;font-size:12px;color:#7b8499">{{ r.feesStr }}</div>
+            <div style="width:70px;text-align:right;font-size:11.5px;color:#5a6275">{{ r.broker }}</div>
           </div>
         </sc-for>
       </div>
@@ -588,7 +595,7 @@
         <div>
           <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Classe</label>
           <select value="{{ form.cls }}" onChange="{{ f.cls }}" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px">
-            <option>Azioni</option><option>Criptovalute</option><option>Obbligazioni</option><option>Materie prime</option>
+            <option>ETF</option><option>Azioni</option><option>Criptovalute</option><option>Obbligazioni</option><option>Materie prime</option><option>Liquidità</option>
           </select>
         </div>
         <div>
@@ -1330,7 +1337,7 @@ class Component extends DCLogic {
     const allocTabs  = [['asset', 'Asset'], ['classe', 'Classe']].map(([k, l]) => ({
       label: l, bg: k === S.allocBy ? '#222c3c' : 'transparent', fg: k === S.allocBy ? '#E8ECF4' : '#8A93A6', on: () => this.setS({ allocBy: k }),
     }));
-    const txFilters  = ['Tutti', 'Azioni', 'Criptovalute', 'Obbligazioni', 'Materie prime'].map(k => ({
+    const txFilters  = ['Tutti', 'ETF', 'Azioni', 'Criptovalute', 'Obbligazioni', 'Materie prime'].map(k => ({
       label: k, bg: k === S.txFilter ? '#222c3c' : 'transparent', fg: k === S.txFilter ? '#E8ECF4' : '#8A93A6', on: () => this.setS({ txFilter: k }),
     }));
 
@@ -1409,10 +1416,11 @@ class Component extends DCLogic {
         rowOpacity:  r._sel ? '1' : '0.4',
         typeBg:      r.type === 'Acquisto' ? 'rgba(63,214,140,0.12)' : 'rgba(242,89,107,0.12)',
         typeFg:      r.type === 'Acquisto' ? '#3FD68C' : '#F2596B',
-        nameShort:   r.name.length > 42 ? r.name.slice(0, 42) + '…' : r.name,
-        dateStr:     r.date,
+        nameShort:   r.name.length > 40 ? r.name.slice(0, 40) + '…' : r.name,
+        dateStr:     window.IMPORT.fmtDateIT(r.date),
         qtyStr:      r.qty.toLocaleString('it-IT'),
         priceStr:    r.price.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 4 }),
+        contrStr:    this.eur(r.controvalore || r.qty * r.price),
         feesStr:     r.fees.toFixed(2) + ' €',
         checkBg:     r._sel ? '#22D3EE' : 'transparent',
         checkBorder: r._sel ? '#22D3EE' : 'rgba(255,255,255,0.2)',
