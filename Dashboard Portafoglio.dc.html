@@ -9,6 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./config.js"></script>
 <script src="./import.js"></script>
+<script src="./prices.js"></script>
 </head>
 <body>
 <x-dc>
@@ -123,13 +124,24 @@
       <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
       <div style="display:flex;flex-direction:column;gap:18px">
 
-        <!-- LAYOUT SWITCHER -->
+        <!-- LAYOUT SWITCHER + PREZZI LIVE -->
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div style="font-size:13px;color:#7b8499;font-weight:600">Layout dashboard</div>
-          <div style="display:flex;gap:3px;background:#10151f;border:1px solid rgba(255,255,255,0.06);border-radius:11px;padding:3px">
-            <sc-for list="{{ layoutTabs }}" as="t" hint-placeholder-count="3">
-              <div onClick="{{ t.on }}" style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:{{ t.bg }};color:{{ t.fg }}">{{ t.label }}</div>
-            </sc-for>
+          <div style="display:flex;align-items:center;gap:14px">
+            <div onClick="{{ refreshPrices }}" title="Aggiorna prezzi di mercato" style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:{{ pricesBtnColor }}" style-hover="opacity:0.75">
+              <sc-if value="{{ pricesLoading }}" hint-placeholder-val="{{ false }}">
+                <div style="width:12px;height:12px;border-radius:50%;border:2px solid #22D3EE;border-top-color:transparent;animation:spin 0.75s linear infinite;flex:none"></div>
+              </sc-if>
+              <sc-if value="{{ !pricesLoading }}" hint-placeholder-val="{{ true }}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="flex:none"><path d="M4 4v5h5M20 20v-5h-5M4.05 13A9 9 0 1020 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </sc-if>
+              {{ pricesTsFmt }}
+            </div>
+            <div style="display:flex;gap:3px;background:#10151f;border:1px solid rgba(255,255,255,0.06);border-radius:11px;padding:3px">
+              <sc-for list="{{ layoutTabs }}" as="t" hint-placeholder-count="3">
+                <div onClick="{{ t.on }}" style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:{{ t.bg }};color:{{ t.fg }}">{{ t.label }}</div>
+              </sc-for>
+            </div>
           </div>
         </div>
 
@@ -705,6 +717,8 @@ class Component extends DCLogic {
     importRows: null, importBroker: '',
     // edit
     editTxId: null, txBrokerFilter: 'Tutti',
+    // prezzi live
+    livePrices: {}, pricesLoading: false, pricesTs: null,
   };
 
   // ── Formatters ─────────────────────────────────────────────────────────────
@@ -720,9 +734,11 @@ class Component extends DCLogic {
   // ── Market helpers ─────────────────────────────────────────────────────────
 
   getMkt(tk, t) {
-    const m = this.MARKET[tk] || this.state.custom[tk];
-    if (m) return m;
-    return { name: (t && t.name) || tk, cls: (t && t.cls) || 'Azioni', price: (t && Number(t.price)) || 0, day: 0, isin: '' };
+    const lp = (this.state.livePrices || {})[tk];
+    const m  = this.MARKET[tk] || this.state.custom[tk];
+    if (m)  return lp ? { ...m,   price: lp.price, day: lp.day } : m;
+    const base = { name: (t && t.name) || tk, cls: (t && t.cls) || 'Azioni', price: (t && Number(t.price)) || 0, day: 0, isin: '' };
+    return lp ? { ...base, price: lp.price, day: lp.day } : base;
   }
 
   // ── Portfolio aggregation ──────────────────────────────────────────────────
@@ -853,11 +869,9 @@ class Component extends DCLogic {
     (assetData || []).forEach(a => {
       custom[a.ticker] = { name: a.name, cls: a.cls, price: Number(a.price), day: Number(a.day), isin: a.isin || '' };
     });
-    this.setState({
-      user, authLoading: false,
-      tx: (txData || []).map(t => ({ ...t, qty: Number(t.qty), price: Number(t.price), fees: Number(t.fees) })),
-      custom,
-    });
+    const txList = (txData || []).map(t => ({ ...t, qty: Number(t.qty), price: Number(t.price), fees: Number(t.fees) }));
+    this.setState({ user, authLoading: false, tx: txList, custom });
+    this._refreshPrices(txList.map(t => t.ticker));
   }
 
   // ── Auth actions ──────────────────────────────────────────────────────────
@@ -872,6 +886,18 @@ class Component extends DCLogic {
   };
 
   doLogout = async () => { await window._sb.auth.signOut(); };
+
+  // ── Prezzi live ───────────────────────────────────────────────────────────
+
+  _refreshPrices = async (tickers) => {
+    if (!window.PRICES) return;
+    const list = tickers || this.state.tx.map(t => t.ticker);
+    if (!list.length) return;
+    this.setState({ pricesLoading: true });
+    const lp = await window.PRICES.fetchLivePrices(list);
+    const ts = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    this.setState({ livePrices: lp, pricesLoading: false, pricesTs: ts });
+  };
 
   // ── Edit transaction ──────────────────────────────────────────────────────
 
@@ -1450,6 +1476,10 @@ class Component extends DCLogic {
       submitAdd: this.submitAdd, showAdd: S.showAdd,
       // tab
       rangeTabs, layoutTabs, allocTabs, txFilters, brokerFilters, rangeLabel: S.range,
+      refreshPrices:  () => this._refreshPrices(),
+      pricesLoading:  S.pricesLoading,
+      pricesTsFmt:    S.pricesLoading ? 'Aggiornamento…' : (S.pricesTs ? 'Aggiornato ' + S.pricesTs : 'Aggiorna prezzi'),
+      pricesBtnColor: S.pricesTs && !S.pricesLoading ? '#22D3EE' : '#5a6275',
       // portafoglio
       kpi, holdings, classRows, donut, donutClass, legend, top, flop, history,
       // drill-down
