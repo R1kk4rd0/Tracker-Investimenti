@@ -748,16 +748,24 @@ class Component extends DCLogic {
     const H = {};
     for (const t of tx) {
       const m = this.getMkt(t.ticker, t);
-      const h = H[t.ticker] || (H[t.ticker] = { ticker: t.ticker, name: m.name, cls: m.cls, isin: m.isin || '', qty: 0, cost: 0 });
+      const h = H[t.ticker] || (H[t.ticker] = { ticker: t.ticker, name: m.name, cls: m.cls, isin: m.isin || '', qty: 0, cost: 0, _fallbackPrice: 0 });
       const q = Number(t.qty) || 0, p = Number(t.price) || 0, f = Number(t.fees) || 0;
-      if (t.type === 'Acquisto') { h.qty += q; h.cost += this.eff(m.cls, q, p) + f; }
-      else { const avg = h.qty > 0 ? h.cost / h.qty : 0; h.cost -= avg * q; h.qty -= q; }
+      if (t.type === 'Acquisto') {
+        h.qty += q; h.cost += this.eff(m.cls, q, p) + f;
+        h._fallbackPrice = p; // ultimo prezzo di acquisto noto — usato se non abbiamo prezzo live
+      } else {
+        const avg = h.qty > 0 ? h.cost / h.qty : 0; h.cost -= avg * q; h.qty -= q;
+      }
     }
     return Object.values(H).filter(h => h.qty > 1e-9).map(h => {
       const m = this.getMkt(h.ticker);
-      const price = m.price, day = m.day || 0, avg = h.cost / h.qty, value = this.eff(h.cls, h.qty, price), pl = value - h.cost;
+      // Se non abbiamo prezzo di mercato (live o statico), usa l'ultimo prezzo di acquisto
+      const price = m.price || h._fallbackPrice || 0;
+      const hasLivePrice = !!m.price;
+      const day = m.day || 0, avg = h.cost / h.qty;
+      const value = this.eff(h.cls, h.qty, price), pl = value - h.cost;
       const plPct = h.cost > 0 ? pl / h.cost * 100 : 0, dayVal = value - value / (1 + day / 100);
-      return { ...h, price, day, avg, value, pl, plPct, dayVal, color: this.CLS[h.cls] || '#5A6678' };
+      return { ...h, price, day, avg, value, pl, plPct, dayVal, hasLivePrice, color: this.CLS[h.cls] || '#5A6678' };
     });
   }
 
@@ -1126,7 +1134,7 @@ class Component extends DCLogic {
     const holdings = hs.map(h => ({
       ticker: h.ticker, name: h.name, cls: h.cls, color: h.color, initials: this.ini(h.ticker),
       qtyFmt:    this.num(h.qty),   avgFmt:   this.eur(h.avg),
-      priceFmt:  this.eur(h.price), valueFmt: this.eur0(h.value),
+      priceFmt:  (h.hasLivePrice ? '' : '~') + this.eur(h.price), valueFmt: this.eur0(h.value),
       plFmt:     (h.pl >= 0 ? '+' : '') + this.eur0(h.pl),
       plPctFmt:  this.pct(h.plPct), plColor: h.plPct >= 0 ? G : R,
       dayPctFmt: this.pct(h.day),
@@ -1258,8 +1266,8 @@ class Component extends DCLogic {
           });
         assetDetail = {
           ticker: h.ticker, name: h.name, cls: h.cls, color: h.color, initials: this.ini(h.ticker), isin: h.isin || '—',
-          priceFmt: this.eur(h.price),   dayFmt:      this.pct(h.day),   dayColor:    h.day >= 0 ? G : R,
-          valueFmt: this.eur0(h.value),  investedFmt: this.eur0(h.cost), avgFmt:      this.eur(h.avg), qtyFmt: this.num(h.qty),
+          priceFmt: (h.hasLivePrice ? '' : '~') + this.eur(h.price), dayFmt: this.pct(h.day), dayColor: h.day >= 0 ? G : R,
+          valueFmt: this.eur0(h.value),  investedFmt: this.eur0(h.cost), avgFmt: this.eur(h.avg), qtyFmt: this.num(h.qty),
           plFmt:    (h.pl >= 0 ? '+' : '') + this.eur0(h.pl), plPctFmt: this.pct(h.plPct), plColor: h.plPct >= 0 ? G : R,
           weightFmt: (assetValue > 0 ? h.value / assetValue * 100 : 0).toFixed(1).replace('.', ',') + '%',
           line: ser.line, area: ser.area, endY: ser.endY, chartColor: h.plPct >= 0 ? '#3FD68C' : '#F2596B',
