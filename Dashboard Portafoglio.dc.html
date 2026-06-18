@@ -364,6 +364,9 @@
           <div style="display:flex;gap:3px;background:#10151f;border:1px solid rgba(255,255,255,0.06);border-radius:11px;padding:3px">
             <sc-for list="{{ txFilters }}" as="t" hint-placeholder-count="5"><div onClick="{{ t.on }}" style="padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;background:{{ t.bg }};color:{{ t.fg }}">{{ t.label }}</div></sc-for>
           </div>
+          <div style="display:flex;gap:3px;background:#10151f;border:1px solid rgba(255,255,255,0.06);border-radius:11px;padding:3px">
+            <sc-for list="{{ brokerFilters }}" as="b" hint-placeholder-count="3"><div onClick="{{ b.on }}" style="padding:7px 13px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;background:{{ b.bg }};color:{{ b.fg }}">{{ b.label }}</div></sc-for>
+          </div>
           <div style="flex:1"></div>
           <div style="font-size:13px;color:#7b8499">{{ txCount }} transazioni</div>
           <label style="display:flex;align-items:center;gap:7px;background:#141a26;border:1px solid rgba(255,255,255,0.08);color:#E8ECF4;font-weight:600;font-size:13px;padding:9px 15px;border-radius:11px;cursor:pointer">
@@ -376,7 +379,7 @@
           <div style="display:flex;padding:13px 22px;font-size:11px;color:#7b8499;font-weight:700;letter-spacing:.03em;border-bottom:1px solid rgba(255,255,255,0.05)">
             <div style="flex:1.1">DATA</div><div style="flex:1">TIPO</div><div style="flex:2.4">ASSET</div><div style="flex:1;text-align:right">QUANTITÀ</div><div style="flex:1.2;text-align:right">PREZZO</div><div style="flex:1.3;text-align:right">CONTROVALORE</div><div style="flex:1;text-align:right">COMM.</div><div style="flex:1.3;padding-left:16px">BROKER</div><div style="flex:0.4"></div>
           </div>
-          <div style="max-height:560px;overflow-y:auto">
+          <div>
             <sc-for list="{{ txList }}" as="t" hint-placeholder-count="12">
               <div>
               <div onClick="{{ t.toggle }}" style="display:flex;align-items:center;padding:13px 22px;border-bottom:1px solid rgba(255,255,255,0.03);font-variant-numeric:tabular-nums;cursor:{{ t.rowCursor }}" style-hover="background:#171d29">
@@ -388,7 +391,10 @@
                 <div style="flex:1.3;text-align:right;font-size:13.5px;font-weight:600">{{ t.totalFmt }}</div>
                 <div style="flex:1;text-align:right;font-size:12.5px;color:#7b8499">{{ t.feesFmt }}</div>
                 <div style="flex:1.3;font-size:12.5px;color:#aeb6c6;padding-left:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.broker }}</div>
-                <div style="flex:0.4;display:flex;justify-content:flex-end"><div onClick="{{ t.del }}" title="Elimina" style="width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#5a6275" style-hover="background:#2a1a1f;color:#F2596B"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+                <div style="flex:0.5;display:flex;justify-content:flex-end;gap:4px">
+                  <div onClick="{{ t.edit }}" title="Modifica" style="width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#5a6275" style-hover="background:#1a2133;color:#22D3EE"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                  <div onClick="{{ t.del }}" title="Elimina" style="width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#5a6275" style-hover="background:#2a1a1f;color:#F2596B"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                </div>
               </div>
               <sc-if value="{{ t.expanded }}" hint-placeholder-val="{{ false }}">
                 <div style="padding:0 22px 18px;background:#0e131c;border-bottom:1px solid rgba(255,255,255,0.04)">
@@ -573,7 +579,7 @@
   <div onClick="{{ closeAdd }}" style="position:fixed;inset:0;background:rgba(5,7,12,0.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:50;animation:fadein .2s">
     <div onClick="{{ stop }}" style="width:680px;max-height:90vh;overflow-y:auto;background:#11161f;border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:26px;box-shadow:0 30px 80px rgba(0,0,0,0.5)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
-        <div><div style="font-size:19px;font-weight:700">Nuova transazione</div><div style="font-size:12.5px;color:#7b8499;margin-top:2px">Verrà aggregata automaticamente nel portafoglio</div></div>
+        <div><div style="font-size:19px;font-weight:700">{{ formTitle }}</div><div style="font-size:12.5px;color:#7b8499;margin-top:2px">{{ formSubtitle }}</div></div>
         <div onClick="{{ closeAdd }}" style="width:34px;height:34px;border-radius:10px;background:#1a212e;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:#232c3b"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#aeb6c6" stroke-width="2" stroke-linecap="round"/></svg></div>
       </div>
 
@@ -660,7 +666,7 @@
         <div style="font-size:13px;color:#7b8499">Controvalore stimato <span style="color:#E8ECF4;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums">{{ form.previewFmt }}</span></div>
         <div style="display:flex;gap:10px">
           <div onClick="{{ closeAdd }}" style="padding:11px 18px;border-radius:11px;background:#1a212e;color:#cdd4e0;font-weight:600;font-size:14px;cursor:pointer" style-hover="background:#232c3b">Annulla</div>
-          <div onClick="{{ submitAdd }}" style="padding:11px 22px;border-radius:11px;background:{{ form.submitBg }};color:#062028;font-weight:700;font-size:14px;cursor:pointer;opacity:{{ form.submitOpacity }}">Aggiungi transazione</div>
+          <div onClick="{{ submitAdd }}" style="padding:11px 22px;border-radius:11px;background:{{ form.submitBg }};color:#062028;font-weight:700;font-size:14px;cursor:pointer;opacity:{{ form.submitOpacity }}">{{ formSubmitLabel }}</div>
         </div>
       </div>
     </div>
@@ -697,6 +703,8 @@ class Component extends DCLogic {
     loginEmail: '', loginPass: '', loginError: '', loginLoading: false,
     // import CSV
     importRows: null, importBroker: '',
+    // edit
+    editTxId: null, txBrokerFilter: 'Tutti',
   };
 
   // ── Formatters ─────────────────────────────────────────────────────────────
@@ -863,6 +871,44 @@ class Component extends DCLogic {
 
   doLogout = async () => { await window._sb.auth.signOut(); };
 
+  // ── Edit transaction ──────────────────────────────────────────────────────
+
+  openEdit = (t) => {
+    this.setState({
+      showAdd: true, editTxId: t.id,
+      form: {
+        type: t.type, date: t.date, ticker: t.ticker,
+        name: t.name || '', cls: t.cls || 'Azioni',
+        qty: String(t.qty), price: String(t.price),
+        fees: String(t.fees || 0), currency: t.currency || 'EUR',
+        broker: t.broker || '', isin: t.isin || '',
+        mkt: '', note: t.note || '',
+        aliquota: t.aliquota || '26',
+      },
+    });
+  };
+
+  _updateTx = async () => {
+    const { editTxId, form: f } = this.state;
+    const q = Number(String(f.qty).replace(',', '.')), p = Number(String(f.price).replace(',', '.'));
+    if (!f.ticker || !q || !p) return;
+    const updates = {
+      date: f.date, type: f.type, ticker: f.ticker.toUpperCase(),
+      name: f.name, cls: f.cls, qty: q, price: p,
+      fees: Number(String(f.fees).replace(',', '.')) || 0,
+      currency: f.currency, broker: f.broker || '—',
+      isin: f.isin || '', note: f.note || '',
+      aliquota: f.type === 'Vendita' ? f.aliquota : null,
+    };
+    const { error } = await window._sb.from('transactions').update(updates).eq('id', editTxId);
+    if (error) { console.error('update error:', error.message); return; }
+    this.setState(s => ({
+      tx: s.tx.map(t => t.id === editTxId ? { ...t, ...updates } : t),
+      showAdd: false, editTxId: null,
+      form: { ...s.form, ticker: '', name: '', qty: '', price: '', fees: '0', broker: '', isin: '', mkt: '', note: '' },
+    }));
+  };
+
   // ── Import CSV ────────────────────────────────────────────────────────────
 
   onImportFile = (e) => {
@@ -933,6 +979,7 @@ class Component extends DCLogic {
   };
 
   submitAdd = async () => {
+    if (this.state.editTxId) return this._updateTx();
     const f = this.state.form;
     const q = Number(String(f.qty).replace(',', '.')), p = Number(String(f.price).replace(',', '.'));
     if (!f.ticker || !q || !p) return;
@@ -1126,6 +1173,7 @@ class Component extends DCLogic {
     const q = S.search.trim().toLowerCase();
     let txRows = [...S.tx].sort((a, b) => a.date < b.date ? 1 : -1);
     if (S.txFilter !== 'Tutti') txRows = txRows.filter(t => this.getMkt(t.ticker, t).cls === S.txFilter);
+    if (S.txBrokerFilter !== 'Tutti') txRows = txRows.filter(t => (t.broker || '—') === S.txBrokerFilter);
     if (q) txRows = txRows.filter(t => {
       const m = this.getMkt(t.ticker, t);
       return (t.ticker + ' ' + m.name + ' ' + (m.isin || '')).toLowerCase().includes(q);
@@ -1146,6 +1194,7 @@ class Component extends DCLogic {
         rowCursor: buy ? 'default' : 'pointer',
         expanded:  exp, chevRot: exp ? 'rotate(90deg)' : 'rotate(0deg)',
         toggle: buy ? (() => {}) : (() => this.setState(s => ({ expandedTx: s.expandedTx === t.id ? null : t.id }))),
+        edit:   (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.openEdit(t); },
         del:    (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.delTx(t.id); },
         caricoFmt:    fd ? this.eur(fd.carico)           : '—',
         interessiFmt: fd ? this.eur(fd.quotaInteressi)   : '—',
@@ -1341,6 +1390,10 @@ class Component extends DCLogic {
     const txFilters  = ['Tutti', 'ETF', 'Azioni', 'Criptovalute', 'Obbligazioni', 'Materie prime'].map(k => ({
       label: k, bg: k === S.txFilter ? '#222c3c' : 'transparent', fg: k === S.txFilter ? '#E8ECF4' : '#8A93A6', on: () => this.setS({ txFilter: k }),
     }));
+    const brokers = ['Tutti', ...new Set(S.tx.map(t => t.broker || '—').filter(Boolean))];
+    const brokerFilters = brokers.map(k => ({
+      label: k, bg: k === S.txBrokerFilter ? '#222c3c' : 'transparent', fg: k === S.txBrokerFilter ? '#E8ECF4' : '#8A93A6', on: () => this.setS({ txBrokerFilter: k }),
+    }));
 
     // handler form
     const f = {
@@ -1381,12 +1434,15 @@ class Component extends DCLogic {
       isOverview: S.layout === 'overview', isFocus: S.layout === 'focus', isDense: S.layout === 'dense',
       // ui
       search:   S.search, onSearch: (e) => this.setS({ search: e.target.value }),
-      openAdd:  () => this.setS({ showAdd: true  }),
-      closeAdd: () => this.setS({ showAdd: false }),
+      openAdd:  () => this.setS({ showAdd: true, editTxId: null }),
+      closeAdd: () => this.setS({ showAdd: false, editTxId: null }),
+      formTitle:       S.editTxId ? 'Modifica transazione' : 'Nuova transazione',
+      formSubtitle:    S.editTxId ? 'Modifica i campi e salva le modifiche' : 'Verrà aggregata automaticamente nel portafoglio',
+      formSubmitLabel: S.editTxId ? 'Salva modifiche' : 'Aggiungi transazione',
       stop:     (e) => e.stopPropagation(),
       submitAdd: this.submitAdd, showAdd: S.showAdd,
       // tab
-      rangeTabs, layoutTabs, allocTabs, txFilters, rangeLabel: S.range,
+      rangeTabs, layoutTabs, allocTabs, txFilters, brokerFilters, rangeLabel: S.range,
       // portafoglio
       kpi, holdings, classRows, donut, donutClass, legend, top, flop, history,
       // drill-down

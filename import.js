@@ -82,14 +82,19 @@ function parseDegiroCSV(text) {
     if (rawQty === 0) continue;
     const isin = c[3].trim();
     const name = c[2].trim();
+    const cls  = _detectClass(name);
     const qty  = Math.abs(rawQty);
-    const price = Math.abs(_itNum(c[7]));
+    // Per obbligazioni il prezzo DEGIRO è in % del nominale (es. 44.00 = 44%).
+    // Usiamo il "Valore EUR" (colonna 11) come controvalore reale e ricaviamo
+    // il prezzo effettivo da esso, così qty × price = importo corretto.
+    const valoreEUR   = Math.abs(_itNum(c[11]));
+    const rawPrice    = Math.abs(_itNum(c[7]));
+    const price = (cls === 'Obbligazioni' && qty > 0) ? valoreEUR / qty : rawPrice;
     rows.push({
       _sel: true,
       date:         _degiroDate(c[0]),
       type:         rawQty > 0 ? 'Acquisto' : 'Vendita',
-      name, isin,
-      cls:          _detectClass(name),
+      name, isin, cls,
       ticker:       _ISIN_TICKER[isin] || '',
       qty, price,
       fees:         Math.abs(_itNum(c[14])),
