@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   isin        TEXT,
   note        TEXT,
   aliquota    TEXT,
+  exchange    TEXT    DEFAULT '',
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 

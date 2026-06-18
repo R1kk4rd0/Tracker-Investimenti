@@ -96,6 +96,7 @@ function parseDegiroCSV(text) {
       controvalore: qty * price,
       currency:     'EUR',
       broker:       'DEGIRO',
+      exchange:     c[5].trim(),
       note:         '',
     });
   }
