@@ -1198,7 +1198,7 @@ class Component extends DCLogic {
         toggle: buy ? (() => {}) : (() => this.setState(s => ({ expandedTx: s.expandedTx === t.id ? null : t.id }))),
         edit:   (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.openEdit(t); },
         del:    (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.delTx(t.id); },
-        caricoFmt:    fd ? this.eur(fd.carico)           : '—',
+        caricoFmt:    fd ? (m.cls === 'Obbligazioni' ? (fd.carico * 100).toFixed(2).replace('.', ',') + '%' : this.eur(fd.carico)) : '—',
         interessiFmt: fd ? this.eur(fd.quotaInteressi)   : '—',
         capitaleFmt:  fd ? ((fd.quotaCapitale >= 0 ? '+' : '') + this.eur(fd.quotaCapitale)) : '—',
         capitaleColor: fd && fd.quotaCapitale >= 0 ? G : R,
@@ -1315,7 +1315,8 @@ class Component extends DCLogic {
         sales: cur.sales.map(s => ({
           name: s.name, ticker: s.ticker, color: this.CLS[s.cls] || '#5A6678', initials: this.ini(s.ticker),
           dateFmt:   new Date(s.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }),
-          totaleFmt: this.eur0(s.totale), caricoFmt: this.eur(s.carico),
+          totaleFmt: this.eur0(s.totale),
+          caricoFmt: s.cls === 'Obbligazioni' ? (s.carico * 100).toFixed(2).replace('.', ',') + '%' : this.eur(s.carico),
           capFmt:    (s.quotaCapitale >= 0 ? '+' : '') + this.eur(s.quotaCapitale), capColor: s.quotaCapitale >= 0 ? G : R,
           tag:       s.quotaCapitale >= 0 ? 'Plusvalenza' : 'Minusvalenza',
           tagColor:  s.quotaCapitale >= 0 ? G : R,
@@ -1335,11 +1336,15 @@ class Component extends DCLogic {
     const isBuy  = f.type === 'Acquisto';
     const fHold  = hs.find(h => h.ticker === (f.ticker || '').toUpperCase());
     const fCarico    = fHold ? fHold.avg : 0;
-    const fTotale    = fq * fp, fInteressi = fq * fCarico, fCapitale = fTotale - fInteressi;
+    const isBond     = f.cls === 'Obbligazioni';
+    // Per bond: price è %, quindi prezzo×qty va diviso per 100
+    const fTotale    = this.eff(f.cls, fq, fp), fInteressi = fq * fCarico, fCapitale = fTotale - fInteressi;
     const fRate      = Number(String(f.aliquota).replace(',', '.')) || 0;
     const fTax       = Math.max(0, fCapitale) * fRate / 100;
     const fNetto     = fCapitale - fTax;
     const aSel       = String(f.aliquota);
+    // Per bond mostra carico come % (es. 44,00%) non come EUR/unità (0,44 €)
+    const fCaricoDisplay = isBond && fHold ? (fCarico * 100).toFixed(2).replace('.', ',') + '%' : (fHold ? this.eur(fCarico) : null);
     return {
       ...f,
       buyBg:      isBuy  ? 'rgba(63,214,140,0.14)' : '#0d121b',
@@ -1348,11 +1353,11 @@ class Component extends DCLogic {
       sellBg:     !isBuy ? 'rgba(242,89,107,0.14)' : '#0d121b',
       sellFg:     !isBuy ? R : '#7b8499',
       sellBorder: !isBuy ? 'rgba(242,89,107,0.4)'  : 'rgba(255,255,255,0.08)',
-      previewFmt:    this.eur(fq * fp),
+      previewFmt:    this.eur(this.eff(f.cls, fq, fp)),
       submitBg:      valid ? '#22D3EE' : '#1c4750',
       submitOpacity: valid ? '1' : '0.5',
       isSell: !isBuy, hasCarico: !isBuy && !!fHold,
-      caricoFmt:    fHold ? this.eur(fCarico) : '— (nessuna posizione)',
+      caricoFmt:    fCaricoDisplay ?? '— (nessuna posizione)',
       interessiFmt: this.eur(fInteressi),
       capitaleFmt:  (fCapitale >= 0 ? '+' : '') + this.eur(fCapitale), capitaleColor: fCapitale >= 0 ? G : R,
       taxFmt:       '−' + this.eur(fTax),
