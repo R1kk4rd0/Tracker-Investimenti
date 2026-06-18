@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<script src="./market-data.js"></script>
+<script src="./transactions.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./config.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</helmet>
+
+<!-- AUTH: LOADING SCREEN ─────────────────────────────────────── -->
+<sc-if value="{{ authLoading }}" hint-placeholder-val="{{ true }}">
+<div style="position:fixed;inset:0;background:#0A0D14;display:flex;align-items:center;justify-content:center;z-index:200">
+  <div style="text-align:center">
+    <div style="width:40px;height:40px;border-radius:50%;border:3px solid rgba(34,211,238,0.15);border-top-color:#22D3EE;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div>
+    <div style="color:#7b8499;font-size:13px;font-family:Manrope,sans-serif">Caricamento…</div>
+  </div>
+</div>
+</sc-if>
+
+<!-- AUTH: LOGIN SCREEN ───────────────────────────────────────── -->
+<sc-if value="{{ showLogin }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;background:#0A0D14;display:flex;align-items:center;justify-content:center;z-index:100;font-family:Manrope,system-ui,sans-serif">
+  <div style="background:#11161f;border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:40px;width:380px;box-shadow:0 30px 80px rgba(0,0,0,0.5)">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">
+      <div style="width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,#22D3EE,#5B9DF9);display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 4px 14px rgba(34,211,238,0.3)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 15l4-5 4 3 4-7 4 4" stroke="#0A0D14" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#E8ECF4">Portfolio Tracker</div>
+        <div style="font-size:12px;color:#7b8499">Accedi al tuo portafoglio</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Email</label>
+        <input value="{{ loginEmail }}" onInput="{{ onLoginEmail }}" type="email" placeholder="nome@email.com" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box"/>
+      </div>
+      <div>
+        <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Password</label>
+        <input value="{{ loginPass }}" onInput="{{ onLoginPass }}" type="password" placeholder="••••••••" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box"/>
+      </div>
+      <sc-if value="{{ loginError }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:12.5px;color:#F2596B;padding:10px 13px;background:rgba(242,89,107,0.1);border-radius:9px">{{ loginError }}</div>
+      </sc-if>
+      <div onClick="{{ doLogin }}" style="text-align:center;padding:13px;border-radius:11px;background:{{ loginBtnBg }};color:#062028;font-weight:700;font-size:14px;cursor:pointer;margin-top:4px;transition:opacity .15s">{{ loginBtnLabel }}</div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<div style="display:flex;height:100vh;width:100%;background:#0A0D14;color:#E8ECF4;font-family:Manrope,system-ui,sans-serif;font-size:14px;overflow:hidden">
+
+  <!-- SIDEBAR -->
+  <div style="width:66px;flex:none;background:#0C1019;border-right:1px solid rgba(255,255,255,0.05);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:6px">
+    <div style="width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#22D3EE,#5B9DF9);display:flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 4px 14px rgba(34,211,238,0.3)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 15l4-5 4 3 4-7 4 4" stroke="#0A0D14" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div onClick="{{ goDash }}" title="Dashboard" style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:{{ navDashBg }};transition:background .15s">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="9" rx="1.6" stroke="{{ navDashFg }}" stroke-width="1.8"/><rect x="14" y="3" width="7" height="5" rx="1.6" stroke="{{ navDashFg }}" stroke-width="1.8"/><rect x="14" y="12" width="7" height="9" rx="1.6" stroke="{{ navDashFg }}" stroke-width="1.8"/><rect x="3" y="16" width="7" height="5" rx="1.6" stroke="{{ navDashFg }}" stroke-width="1.8"/></svg>
+    </div>
+    <div onClick="{{ goTx }}" title="Transazioni" style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:{{ navTxBg }};transition:background .15s">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 7h13M4 7l3-3M4 7l3 3M20 17H7M20 17l-3-3M20 17l-3 3" stroke="{{ navTxFg }}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div onClick="{{ goFisco }}" title="Fisco" style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:{{ navFiscoBg }};transition:background .15s">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 14l6-6M9.5 9h.01M14.5 14h.01M5 4h14a1 1 0 011 1v15l-3-1.6L14 20l-2-1.4L10 20l-3-1.6L4 20V5a1 1 0 011-1z" stroke="{{ navFiscoFg }}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div title="Analisi" style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:default;opacity:.55">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 19V5M4 19h16M8 16v-4M12 16V8M16 16v-7M20 16v-3" stroke="#6b7488" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </div>
+    <div title="Watchlist" style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:default;opacity:.55">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 4l2.3 4.7 5.2.8-3.8 3.7.9 5.2L12 16.6 7.4 18.4l.9-5.2L4.5 9.5l5.2-.8z" stroke="#6b7488" stroke-width="1.7" stroke-linejoin="round"/></svg>
+    </div>
+    <div style="flex:1"></div>
+    <div title="Impostazioni" style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:default;opacity:.55">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="#6b7488" stroke-width="1.8"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4" stroke="#6b7488" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </div>
+    <div onClick="{{ doLogout }}" title="{{ userEmail }}" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#5B9DF9,#A78BFA);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#0A0D14;margin-top:4px;cursor:pointer" title="Esci ({{ userEmail }})">{{ userInitials }}</div>
+  </div>
+
+  <!-- MAIN -->
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+
+    <!-- TOPBAR -->
+    <div style="height:66px;flex:none;display:flex;align-items:center;gap:18px;padding:0 26px;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div style="display:flex;flex-direction:column;gap:2px;min-width:150px">
+        <div style="font-size:17px;font-weight:700;letter-spacing:-.01em">{{ pageTitle }}</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#7b8499">
+          <span style="width:6px;height:6px;border-radius:50%;background:#3FD68C;animation:pulse 1.8s infinite"></span>Mercati live · agg. 18 giu 15:42
+        </div>
+      </div>
+      <div style="flex:1;max-width:340px;display:flex;align-items:center;gap:9px;background:#141a26;border:1px solid rgba(255,255,255,0.06);border-radius:11px;padding:9px 13px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#6b7488" stroke-width="1.8"/><path d="M20 20l-3.2-3.2" stroke="#6b7488" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input value="{{ search }}" onInput="{{ onSearch }}" placeholder="Cerca asset, ticker, ISIN…" style="flex:1;background:none;border:none;color:#E8ECF4;font-size:13.5px"/>
+      </div>
+      <div style="flex:1"></div>
+      <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;gap:2px;background:#10151f;border:1px solid rgba(255,255,255,0.06);border-radius:11px;padding:3px">
+          <sc-for list="{{ rangeTabs }}" as="t" hint-placeholder-count="6">
+            <div onClick="{{ t.on }}" style="padding:7px 13px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;background:{{ t.bg }};color:{{ t.fg }};font-variant-numeric:tabular-nums">{{ t.label }}</div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <div onClick="{{ openAdd }}" style="display:flex;align-items:center;gap:7px;background:#22D3EE;color:#062028;font-weight:700;font-size:13.5px;padding:10px 16px;border-radius:11px;cursor:pointer;box-shadow:0 4px 14px rgba(34,211,238,0.22)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#062028" stroke-width="2.4" stroke-linecap="round"/></svg>Nuova transazione
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div style="flex:1;overflow-y:auto;padding:24px 26px 60px">
+
+      <!-- ============ DASHBOARD ============ -->
+      <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:18px">
+
+        <!-- LAYOUT SWITCHER -->
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:13px;color:#7b8499;font-weight:600">Layout dashboard</div>
+          <div style="display:flex;gap:3px;background:#10151f;border:1px solid rgba(255,255,255,0.06);border-radius:11px;padding:3px">
+            <sc-for list="{{ layoutTabs }}" as="t" hint-placeholder-count="3">
+              <div onClick="{{ t.on }}" style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:{{ t.bg }};color:{{ t.fg }}">{{ t.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- KPI STRIP -->
+        <div style="display:flex;gap:16px">
+          <div style="flex:1;background:linear-gradient(135deg,#15202e,#121722);border:1px solid rgba(34,211,238,0.18);border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;gap:9px">
+            <div style="display:flex;align-items:center;justify-content:space-between"><span style="color:#8A93A6;font-size:11.5px;font-weight:700;letter-spacing:.04em">PATRIMONIO TOTALE</span><span style="width:8px;height:8px;border-radius:50%;background:#22D3EE;box-shadow:0 0 8px #22D3EE"></span></div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.015em;font-variant-numeric:tabular-nums">{{ kpi.totalValueFmt }}</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12.5px"><span style="color:{{ kpi.plColor }};font-weight:700">{{ kpi.plFmt }}</span><span style="color:{{ kpi.plColor }};background:{{ kpi.plBg }};padding:2px 7px;border-radius:6px;font-weight:700;font-size:11.5px">{{ kpi.plPctFmt }}</span></div>
+          </div>
+          <div style="flex:1;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;gap:9px">
+            <span style="color:#8A93A6;font-size:11.5px;font-weight:700;letter-spacing:.04em">P&L NON REALIZZATO</span>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.015em;font-variant-numeric:tabular-nums;color:{{ kpi.plColor }}">{{ kpi.plFmt }}</div>
+            <div style="font-size:12.5px;color:#7b8499">Capitale investito <span style="color:#cdd4e0;font-weight:600">{{ kpi.investedFmt }}</span></div>
+          </div>
+          <div style="flex:1;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;gap:9px">
+            <span style="color:#8A93A6;font-size:11.5px;font-weight:700;letter-spacing:.04em">VARIAZIONE OGGI</span>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.015em;font-variant-numeric:tabular-nums;color:{{ kpi.dayColor }}">{{ kpi.dayPctFmt }}</div>
+            <div style="font-size:12.5px;color:{{ kpi.dayColor }};font-weight:600">{{ kpi.dayPlFmt }}</div>
+          </div>
+          <div style="flex:1;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;gap:9px">
+            <span style="color:#8A93A6;font-size:11.5px;font-weight:700;letter-spacing:.04em">LIQUIDITÀ</span>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.015em;font-variant-numeric:tabular-nums">{{ kpi.cashFmt }}</div>
+            <div style="font-size:12.5px;color:#7b8499">{{ kpi.count }} asset · {{ kpi.classCount }} classi</div>
+          </div>
+        </div>
+
+        <!-- ===== LAYOUT: PANORAMICA ===== -->
+        <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;gap:18px;align-items:stretch">
+            <!-- donut -->
+            <div style="flex:1.25;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:22px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <div style="font-size:15px;font-weight:700">Allocazione</div>
+                <div style="display:flex;gap:3px;background:#10151f;border:1px solid rgba(255,255,255,0.06);border-radius:9px;padding:3px">
+                  <sc-for list="{{ allocTabs }}" as="t" hint-placeholder-count="2"><div onClick="{{ t.on }}" style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:{{ t.bg }};color:{{ t.fg }}">{{ t.label }}</div></sc-for>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:26px;margin-top:10px">
+                <div style="position:relative;width:200px;height:200px;flex:none">
+                  <svg width="200" height="200" viewBox="0 0 220 220">
+                    <circle cx="110" cy="110" r="86" fill="none" stroke="#1c2330" stroke-width="22"/>
+                    <sc-for list="{{ donut }}" as="s" hint-placeholder-count="5"><circle onClick="{{ s.on }}" cx="110" cy="110" r="86" fill="none" stroke="{{ s.color }}" stroke-width="22" stroke-dasharray="{{ s.dash }}" stroke-dashoffset="{{ s.offset }}" transform="rotate(-90 110 110)" style="cursor:pointer"/></sc-for>
+                  </svg>
+                  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                    <span style="font-size:11px;color:#7b8499;font-weight:600">Asset</span>
+                    <span style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:600;font-variant-numeric:tabular-nums">{{ kpi.assetValueFmt }}</span>
+                  </div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:11px">
+                  <sc-for list="{{ legend }}" as="l" hint-placeholder-count="5">
+                    <div onClick="{{ l.on }}" style="display:flex;align-items:center;gap:11px;cursor:pointer;padding:4px 6px;margin:-4px -6px;border-radius:8px" style-hover="background:#1a212e">
+                      <span style="width:10px;height:10px;border-radius:3px;background:{{ l.color }};flex:none"></span>
+                      <span style="flex:1;font-size:13.5px;font-weight:600">{{ l.label }}</span>
+                      <span style="font-size:13px;color:#aeb6c6;font-variant-numeric:tabular-nums">{{ l.valueFmt }}</span>
+                      <span style="font-size:13px;font-weight:700;width:52px;text-align:right;font-variant-numeric:tabular-nums">{{ l.pctFmt }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+            <!-- holdings list -->
+            <div style="flex:1;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:22px;display:flex;flex-direction:column">
+              <div style="font-size:15px;font-weight:700;margin-bottom:14px">Le mie posizioni</div>
+              <div style="display:flex;flex-direction:column;gap:3px;overflow-y:auto;max-height:300px;margin:0 -8px">
+                <sc-for list="{{ holdings }}" as="h" hint-placeholder-count="6">
+                  <div onClick="{{ h.open }}" style="display:flex;align-items:center;gap:12px;padding:9px 8px;border-radius:10px;cursor:pointer" style-hover="background:#1a212e">
+                    <div style="width:34px;height:34px;border-radius:10px;background:{{ h.color }}22;border:1px solid {{ h.color }}44;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:{{ h.color }};flex:none">{{ h.initials }}</div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ h.name }}</div>
+                      <div style="font-size:11.5px;color:#7b8499">{{ h.qtyFmt }} · {{ h.ticker }}</div>
+                    </div>
+                    <div style="text-align:right">
+                      <div style="font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums">{{ h.valueFmt }}</div>
+                      <div style="font-size:11.5px;font-weight:700;color:{{ h.plColor }};font-variant-numeric:tabular-nums">{{ h.plPctFmt }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <!-- history -->
+          <div style="background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:22px">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:8px">
+              <div>
+                <div style="font-size:15px;font-weight:700">Andamento patrimonio</div>
+                <div style="font-size:12.5px;color:#7b8499;margin-top:2px">Periodo {{ rangeLabel }} · rendimento <span style="color:{{ history.retColor }};font-weight:700">{{ history.retFmt }}</span></div>
+              </div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:600;font-variant-numeric:tabular-nums">{{ kpi.totalValueFmt }}</div>
+            </div>
+            <svg viewBox="0 0 1000 240" preserveAspectRatio="none" style="width:100%;height:200px;display:block">
+              <defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22D3EE" stop-opacity="0.28"/><stop offset="1" stop-color="#22D3EE" stop-opacity="0"/></linearGradient></defs>
+              <path d="{{ history.area }}" fill="url(#hg)"/>
+              <path d="{{ history.line }}" fill="none" stroke="#22D3EE" stroke-width="2.5" stroke-linejoin="round"/>
+              <circle cx="996" cy="{{ history.endY }}" r="4.5" fill="#22D3EE"/>
+            </svg>
+          </div>
+
+          <!-- top / flop -->
+          <div style="display:flex;gap:18px">
+            <div style="flex:1;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:22px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><span style="width:7px;height:7px;border-radius:50%;background:#3FD68C"></span><div style="font-size:15px;font-weight:700">Migliori 5</div></div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <sc-for list="{{ top }}" as="h" hint-placeholder-count="5">
+                  <div onClick="{{ h.open }}" style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:4px;margin:-4px;border-radius:9px" style-hover="background:#1a212e">
+                    <div style="width:32px;height:32px;border-radius:9px;background:{{ h.color }}22;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11.5px;color:{{ h.color }}">{{ h.initials }}</div>
+                    <div style="flex:1"><div style="font-size:13.5px;font-weight:600">{{ h.name }}</div><div style="font-size:11.5px;color:#7b8499">{{ h.valueFmt }}</div></div>
+                    <div style="font-size:14px;font-weight:700;color:#3FD68C;font-variant-numeric:tabular-nums">{{ h.plPctFmt }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="flex:1;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:22px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><span style="width:7px;height:7px;border-radius:50%;background:#F2596B"></span><div style="font-size:15px;font-weight:700">Peggiori 5</div></div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <sc-for list="{{ flop }}" as="h" hint-placeholder-count="5">
+                  <div onClick="{{ h.open }}" style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:4px;margin:-4px;border-radius:9px" style-hover="background:#1a212e">
+                    <div style="width:32px;height:32px;border-radius:9px;background:{{ h.color }}22;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11.5px;color:{{ h.color }}">{{ h.initials }}</div>
+                    <div style="flex:1"><div style="font-size:13.5px;font-weight:600">{{ h.name }}</div><div style="font-size:11.5px;color:#7b8499">{{ h.valueFmt }}</div></div>
+                    <div style="font-size:14px;font-weight:700;color:{{ h.plColor }};font-variant-numeric:tabular-nums">{{ h.plPctFmt }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ===== LAYOUT: FOCUS ===== -->
+        <sc-if value="{{ isFocus }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <div style="background:linear-gradient(135deg,#121a26,#0f1420);border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:26px;position:relative;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:2">
+              <div>
+                <div style="font-size:13px;color:#8A93A6;font-weight:600;letter-spacing:.03em">PATRIMONIO TOTALE · {{ rangeLabel }}</div>
+                <div style="font-family:'Space Grotesk',sans-serif;font-size:46px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:6px">{{ kpi.totalValueFmt }}</div>
+                <div style="display:flex;gap:10px;margin-top:8px"><span style="color:{{ history.retColor }};font-weight:700;font-size:15px">{{ history.retFmt }}</span><span style="color:{{ kpi.plColor }};font-size:15px;font-weight:600">{{ kpi.plFmt }}</span></div>
+              </div>
+              <div style="display:flex;gap:10px">
+                <div style="background:#10151f;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px 16px;text-align:right"><div style="font-size:11px;color:#7b8499;font-weight:600">OGGI</div><div style="font-size:18px;font-weight:700;color:{{ kpi.dayColor }};font-variant-numeric:tabular-nums">{{ kpi.dayPctFmt }}</div></div>
+                <div style="background:#10151f;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px 16px;text-align:right"><div style="font-size:11px;color:#7b8499;font-weight:600">LIQUIDITÀ</div><div style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums">{{ kpi.cashFmt }}</div></div>
+              </div>
+            </div>
+            <svg viewBox="0 0 1000 240" preserveAspectRatio="none" style="width:100%;height:230px;display:block;margin-top:14px">
+              <defs><linearGradient id="hg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5B9DF9" stop-opacity="0.32"/><stop offset="1" stop-color="#5B9DF9" stop-opacity="0"/></linearGradient></defs>
+              <path d="{{ history.area }}" fill="url(#hg2)"/>
+              <path d="{{ history.line }}" fill="none" stroke="#5B9DF9" stroke-width="2.5" stroke-linejoin="round"/>
+              <circle cx="996" cy="{{ history.endY }}" r="5" fill="#5B9DF9"/>
+            </svg>
+          </div>
+          <div style="display:flex;gap:18px">
+            <div style="flex:1.1;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:22px">
+              <div style="font-size:15px;font-weight:700;margin-bottom:16px">Allocazione per classe</div>
+              <div style="display:flex;flex-direction:column;gap:15px">
+                <sc-for list="{{ classRows }}" as="c" hint-placeholder-count="5">
+                  <div onClick="{{ c.on }}" style="cursor:pointer;padding:4px 6px;margin:-4px -6px;border-radius:8px" style-hover="background:#1a212e">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:13px;font-weight:600">{{ c.label }}</span><span style="font-size:13px;color:#aeb6c6;font-variant-numeric:tabular-nums">{{ c.valueFmt }} · {{ c.pctFmt }}</span></div>
+                    <div style="height:8px;background:#1c2330;border-radius:5px;overflow:hidden"><div style="height:100%;width:{{ c.pct }}%;background:{{ c.color }};border-radius:5px"></div></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="flex:1;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:22px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><span style="width:7px;height:7px;border-radius:50%;background:#3FD68C"></span><div style="font-size:15px;font-weight:700">Top performer</div></div>
+              <div style="display:flex;flex-direction:column;gap:13px">
+                <sc-for list="{{ top }}" as="h" hint-placeholder-count="5"><div onClick="{{ h.open }}" style="display:flex;align-items:center;gap:11px;cursor:pointer;padding:4px;margin:-4px;border-radius:8px" style-hover="background:#1a212e"><div style="width:30px;height:30px;border-radius:9px;background:{{ h.color }}22;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:{{ h.color }}">{{ h.initials }}</div><span style="flex:1;font-size:13px;font-weight:600">{{ h.name }}</span><span style="font-size:13.5px;font-weight:700;color:#3FD68C;font-variant-numeric:tabular-nums">{{ h.plPctFmt }}</span></div></sc-for>
+              </div>
+            </div>
+            <div style="flex:1;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:22px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><span style="width:7px;height:7px;border-radius:50%;background:#F2596B"></span><div style="font-size:15px;font-weight:700">Da monitorare</div></div>
+              <div style="display:flex;flex-direction:column;gap:13px">
+                <sc-for list="{{ flop }}" as="h" hint-placeholder-count="5"><div onClick="{{ h.open }}" style="display:flex;align-items:center;gap:11px;cursor:pointer;padding:4px;margin:-4px;border-radius:8px" style-hover="background:#1a212e"><div style="width:30px;height:30px;border-radius:9px;background:{{ h.color }}22;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:{{ h.color }}">{{ h.initials }}</div><span style="flex:1;font-size:13px;font-weight:600">{{ h.name }}</span><span style="font-size:13.5px;font-weight:700;color:{{ h.plColor }};font-variant-numeric:tabular-nums">{{ h.plPctFmt }}</span></div></sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ===== LAYOUT: ANALITICA ===== -->
+        <sc-if value="{{ isDense }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;gap:18px;align-items:flex-start">
+          <div style="flex:1;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;overflow:hidden">
+            <div style="padding:18px 22px;font-size:15px;font-weight:700;border-bottom:1px solid rgba(255,255,255,0.05)">Posizioni · dettaglio</div>
+            <div style="display:flex;padding:11px 22px;font-size:11px;color:#7b8499;font-weight:700;letter-spacing:.03em;border-bottom:1px solid rgba(255,255,255,0.05)">
+              <div style="flex:2.2">ASSET</div><div style="flex:1;text-align:right">Q.TÀ</div><div style="flex:1.3;text-align:right">P. MEDIO</div><div style="flex:1.3;text-align:right">P. ATTUALE</div><div style="flex:1.3;text-align:right">CONTROV.</div><div style="flex:1;text-align:right">PESO</div><div style="flex:1.3;text-align:right">P&L</div><div style="flex:1.6;text-align:center">7G</div>
+            </div>
+            <sc-for list="{{ holdings }}" as="h" hint-placeholder-count="8">
+              <div onClick="{{ h.open }}" style="display:flex;align-items:center;padding:13px 22px;border-bottom:1px solid rgba(255,255,255,0.03);font-variant-numeric:tabular-nums;cursor:pointer" style-hover="background:#171d29">
+                <div style="flex:2.2;display:flex;align-items:center;gap:11px"><div style="width:32px;height:32px;border-radius:9px;background:{{ h.color }}22;border:1px solid {{ h.color }}44;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11.5px;color:{{ h.color }};flex:none">{{ h.initials }}</div><div style="min-width:0"><div style="font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ h.name }}</div><div style="font-size:11px;color:#7b8499;white-space:nowrap">{{ h.ticker }} · {{ h.cls }}</div></div></div>
+                <div style="flex:1;text-align:right;font-size:13px">{{ h.qtyFmt }}</div>
+                <div style="flex:1.3;text-align:right;font-size:13px;color:#aeb6c6">{{ h.avgFmt }}</div>
+                <div style="flex:1.3;text-align:right;font-size:13px">{{ h.priceFmt }}</div>
+                <div style="flex:1.3;text-align:right;font-size:13.5px;font-weight:600">{{ h.valueFmt }}</div>
+                <div style="flex:1;text-align:right;font-size:13px;color:#aeb6c6">{{ h.weightFmt }}</div>
+                <div style="flex:1.3;text-align:right"><div style="font-size:13px;font-weight:700;color:{{ h.plColor }}">{{ h.plPctFmt }}</div><div style="font-size:11px;color:{{ h.plColor }}">{{ h.plFmt }}</div></div>
+                <div style="flex:1.6;display:flex;justify-content:flex-end;padding-left:14px"><svg viewBox="0 0 100 30" preserveAspectRatio="none" style="width:74px;height:26px"><path d="{{ h.spark }}" fill="none" stroke="{{ h.plColor }}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="width:300px;flex:none;display:flex;flex-direction:column;gap:18px">
+            <div style="background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:20px">
+              <div style="font-size:14px;font-weight:700;margin-bottom:14px">Allocazione</div>
+              <div style="display:flex;justify-content:center;margin-bottom:14px"><div style="position:relative;width:150px;height:150px"><svg width="150" height="150" viewBox="0 0 220 220"><circle cx="110" cy="110" r="86" fill="none" stroke="#1c2330" stroke-width="24"/><sc-for list="{{ donutClass }}" as="s" hint-placeholder-count="5"><circle cx="110" cy="110" r="86" fill="none" stroke="{{ s.color }}" stroke-width="24" stroke-dasharray="{{ s.dash }}" stroke-dashoffset="{{ s.offset }}" transform="rotate(-90 110 110)"/></sc-for></svg></div></div>
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <sc-for list="{{ classRows }}" as="c" hint-placeholder-count="5"><div onClick="{{ c.on }}" style="display:flex;align-items:center;gap:9px;cursor:pointer;padding:3px 5px;margin:-3px -5px;border-radius:7px" style-hover="background:#1a212e"><span style="width:9px;height:9px;border-radius:3px;background:{{ c.color }}"></span><span style="flex:1;font-size:12.5px;font-weight:600">{{ c.label }}</span><span style="font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums">{{ c.pctFmt }}</span></div></sc-for>
+              </div>
+            </div>
+            <div style="background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:20px">
+              <div style="font-size:14px;font-weight:700;margin-bottom:12px">Sintesi</div>
+              <div style="display:flex;flex-direction:column;gap:11px">
+                <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#7b8499">Investito</span><span style="font-weight:600;font-variant-numeric:tabular-nums">{{ kpi.investedFmt }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#7b8499">Valore asset</span><span style="font-weight:600;font-variant-numeric:tabular-nums">{{ kpi.assetValueFmt }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#7b8499">P&L totale</span><span style="font-weight:700;color:{{ kpi.plColor }};font-variant-numeric:tabular-nums">{{ kpi.plFmt }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#7b8499">Rendimento</span><span style="font-weight:700;color:{{ kpi.plColor }};font-variant-numeric:tabular-nums">{{ kpi.plPctFmt }}</span></div>
+                <div style="height:1px;background:rgba(255,255,255,0.06)"></div>
+                <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#7b8499">Posizioni</span><span style="font-weight:600">{{ kpi.count }}</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+      </div>
+      </sc-if>
+
+      <!-- ============ TRANSAZIONI ============ -->
+      <sc-if value="{{ isTx }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="display:flex;gap:3px;background:#10151f;border:1px solid rgba(255,255,255,0.06);border-radius:11px;padding:3px">
+            <sc-for list="{{ txFilters }}" as="t" hint-placeholder-count="5"><div onClick="{{ t.on }}" style="padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;background:{{ t.bg }};color:{{ t.fg }}">{{ t.label }}</div></sc-for>
+          </div>
+          <div style="flex:1"></div>
+          <div style="font-size:13px;color:#7b8499">{{ txCount }} transazioni</div>
+        </div>
+        <div style="background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;overflow:hidden">
+          <div style="display:flex;padding:13px 22px;font-size:11px;color:#7b8499;font-weight:700;letter-spacing:.03em;border-bottom:1px solid rgba(255,255,255,0.05)">
+            <div style="flex:1.1">DATA</div><div style="flex:1">TIPO</div><div style="flex:2.4">ASSET</div><div style="flex:1;text-align:right">QUANTITÀ</div><div style="flex:1.2;text-align:right">PREZZO</div><div style="flex:1.3;text-align:right">CONTROVALORE</div><div style="flex:1;text-align:right">COMM.</div><div style="flex:1.3;padding-left:16px">BROKER</div><div style="flex:0.4"></div>
+          </div>
+          <div style="max-height:560px;overflow-y:auto">
+            <sc-for list="{{ txList }}" as="t" hint-placeholder-count="12">
+              <div>
+              <div onClick="{{ t.toggle }}" style="display:flex;align-items:center;padding:13px 22px;border-bottom:1px solid rgba(255,255,255,0.03);font-variant-numeric:tabular-nums;cursor:{{ t.rowCursor }}" style-hover="background:#171d29">
+                <div style="flex:1.1;font-size:13px;color:#cdd4e0">{{ t.dateFmt }}</div>
+                <div style="flex:1;display:flex;align-items:center;gap:6px"><span style="font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:6px;background:{{ t.badgeBg }};color:{{ t.badgeFg }}">{{ t.type }}</span><sc-if value="{{ t.isSell }}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="transform:{{ t.chevRot }};transition:transform .15s"><path d="M9 6l6 6-6 6" stroke="#7b8499" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></sc-if></div>
+                <div style="flex:2.4;display:flex;align-items:center;gap:10px;min-width:0"><div style="width:30px;height:30px;border-radius:8px;background:{{ t.color }}22;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:{{ t.color }};flex:none">{{ t.initials }}</div><div style="min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.name }}</div><div style="font-size:11px;color:#7b8499">{{ t.ticker }}</div></div></div>
+                <div style="flex:1;text-align:right;font-size:13px">{{ t.qtyFmt }}</div>
+                <div style="flex:1.2;text-align:right;font-size:13px">{{ t.priceFmt }}</div>
+                <div style="flex:1.3;text-align:right;font-size:13.5px;font-weight:600">{{ t.totalFmt }}</div>
+                <div style="flex:1;text-align:right;font-size:12.5px;color:#7b8499">{{ t.feesFmt }}</div>
+                <div style="flex:1.3;font-size:12.5px;color:#aeb6c6;padding-left:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.broker }}</div>
+                <div style="flex:0.4;display:flex;justify-content:flex-end"><div onClick="{{ t.del }}" title="Elimina" style="width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#5a6275" style-hover="background:#2a1a1f;color:#F2596B"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+              </div>
+              <sc-if value="{{ t.expanded }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:0 22px 18px;background:#0e131c;border-bottom:1px solid rgba(255,255,255,0.04)">
+                  <div style="display:flex;align-items:center;gap:8px;padding:15px 0 12px;font-size:11.5px;font-weight:700;color:#8A93A6;letter-spacing:.04em"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z" stroke="#22D3EE" stroke-width="1.7" stroke-linejoin="round"/></svg>DETTAGLIO FISCALE — PLUSVALENZA E TASSAZIONE</div>
+                  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);border-radius:12px;overflow:hidden;font-variant-numeric:tabular-nums">
+                    <div style="background:#11161f;padding:14px 15px"><div style="font-size:11px;color:#7b8499;margin-bottom:6px">Prezzo di carico</div><div style="font-size:14.5px;font-weight:600">{{ t.caricoFmt }}</div></div>
+                    <div style="background:#11161f;padding:14px 15px"><div style="font-size:11px;color:#7b8499;margin-bottom:6px">Totale operazione</div><div style="font-size:14.5px;font-weight:600">{{ t.totalFmt }}</div></div>
+                    <div style="background:#11161f;padding:14px 15px"><div style="font-size:11px;color:#7b8499;margin-bottom:6px">Quota interessi</div><div style="font-size:14.5px;font-weight:600">{{ t.interessiFmt }}</div></div>
+                    <div style="background:#11161f;padding:14px 15px"><div style="font-size:11px;color:#7b8499;margin-bottom:6px">Quota capitale</div><div style="font-size:14.5px;font-weight:700;color:{{ t.capitaleColor }}">{{ t.capitaleFmt }}</div></div>
+                    <div style="background:#11161f;padding:14px 15px"><div style="font-size:11px;color:#7b8499;margin-bottom:6px">Tassazione {{ t.rateFmt }}</div><div style="font-size:14.5px;font-weight:600;color:#F2596B">{{ t.taxFmt }}</div></div>
+                    <div style="background:#13202a;padding:14px 15px"><div style="font-size:11px;color:#7b8499;margin-bottom:6px">Netto rimanente</div><div style="font-size:14.5px;font-weight:700;color:{{ t.nettoColor }}">{{ t.nettoFmt }}</div></div>
+                  </div>
+                </div>
+              </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ============ FISCO ============ -->
+      <sc-if value="{{ isFisco }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <sc-if value="{{ hasFisco }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:18px">
+
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:13px;color:#7b8499;font-weight:600">Anno fiscale</span>
+              <div style="display:flex;gap:3px;background:#10151f;border:1px solid rgba(255,255,255,0.06);border-radius:11px;padding:3px">
+                <sc-for list="{{ fyTabs }}" as="t" hint-placeholder-count="3"><div onClick="{{ t.on }}" style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:{{ t.bg }};color:{{ t.fg }};font-variant-numeric:tabular-nums">{{ t.label }}</div></sc-for>
+              </div>
+            </div>
+            <div style="font-size:12.5px;color:#7b8499">Regime dichiarativo · le minusvalenze si compensano entro <span style="color:#cdd4e0;font-weight:600">4 anni</span></div>
+          </div>
+
+          <!-- KPI anno -->
+          <div style="display:flex;gap:16px">
+            <div style="flex:1;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:18px 20px"><div style="color:#8A93A6;font-size:11.5px;font-weight:700;letter-spacing:.04em;margin-bottom:9px">PLUSVALENZE {{ curDetail.yearFmt }}</div><div style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;color:#3FD68C">{{ curDetail.plusFmt }}</div></div>
+            <div style="flex:1;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:18px 20px"><div style="color:#8A93A6;font-size:11.5px;font-weight:700;letter-spacing:.04em;margin-bottom:9px">MINUSVALENZE {{ curDetail.yearFmt }}</div><div style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;color:#F2596B">{{ curDetail.minusFmt }}</div></div>
+            <div style="flex:1;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:18px 20px"><div style="color:#8A93A6;font-size:11.5px;font-weight:700;letter-spacing:.04em;margin-bottom:9px">IMPONIBILE NETTO</div><div style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:600;font-variant-numeric:tabular-nums">{{ curDetail.imponibileFmt }}</div></div>
+            <div style="flex:1;background:linear-gradient(135deg,#1f1620,#191320);border:1px solid rgba(242,89,107,0.22);border-radius:18px;padding:18px 20px"><div style="color:#8A93A6;font-size:11.5px;font-weight:700;letter-spacing:.04em;margin-bottom:9px">IMPOSTA DOVUTA</div><div style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;color:#F2596B">{{ curDetail.impostaFmt }}</div></div>
+          </div>
+
+          <div style="display:flex;gap:18px;align-items:flex-start">
+            <!-- calcolo compensazione -->
+            <div style="flex:1.4;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:24px">
+              <div style="font-size:15px;font-weight:700;margin-bottom:18px">Calcolo della compensazione · {{ curDetail.yearFmt }}</div>
+              <div style="display:flex;flex-direction:column;font-variant-numeric:tabular-nums">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0"><span style="font-size:14px;color:#cdd4e0">Plusvalenze lorde</span><span style="font-size:15px;font-weight:600;color:#3FD68C">+{{ curDetail.plusFmt }}</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid rgba(255,255,255,0.05)"><span style="font-size:14px;color:#cdd4e0">Minusvalenze dello stesso anno</span><span style="font-size:15px;font-weight:600;color:#F2596B">{{ curDetail.compCurrentFmt }}</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid rgba(255,255,255,0.08)"><span style="font-size:14px;font-weight:600">Netto di periodo</span><span style="font-size:15px;font-weight:700;color:{{ curDetail.netColor }}">{{ curDetail.netGainFmt }}</span></div>
+                <sc-if value="{{ curDetail.hasCarryIn }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid rgba(255,255,255,0.05)"><span style="font-size:14px;color:#cdd4e0">Compensazione zainetto pregresso <span style="color:#7b8499">(disp. {{ curDetail.carryInFmt }})</span></span><span style="font-size:15px;font-weight:600;color:#22D3EE">{{ curDetail.compCarryFmt }}</span></div>
+                </sc-if>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid rgba(255,255,255,0.08)"><span style="font-size:14px;font-weight:600">Imponibile</span><span style="font-size:15px;font-weight:700">{{ curDetail.imponibileFmt }}</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid rgba(255,255,255,0.05)"><span style="font-size:14px;color:#cdd4e0">Aliquota media applicata</span><span style="font-size:15px;font-weight:600;color:#aeb6c6">{{ curDetail.rateFmt }}</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;margin-top:8px;background:rgba(242,89,107,0.08);border:1px solid rgba(242,89,107,0.2);border-radius:12px"><span style="font-size:14px;font-weight:700">Imposta dovuta</span><span style="font-size:18px;font-weight:700;color:#F2596B">{{ curDetail.impostaFmt }}</span></div>
+                <sc-if value="{{ curDetail.nuovaMinusFmt }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:10px;padding:13px 15px;margin-top:12px;background:rgba(34,211,238,0.07);border:1px dashed rgba(34,211,238,0.3);border-radius:12px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke="#22D3EE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="font-size:13px;color:#aeb6c6">Eccedenza di minusvalenza <span style="color:#22D3EE;font-weight:700">{{ curDetail.nuovaMinusFmt }}</span> → confluisce nello zainetto (compensabile fino al 4° anno)</span></div>
+                </sc-if>
+              </div>
+
+              <div style="font-size:13px;font-weight:700;color:#8A93A6;margin:22px 0 12px;letter-spacing:.03em">VENDITE REALIZZATE {{ curDetail.yearFmt }}</div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <sc-for list="{{ curDetail.sales }}" as="s" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:center;gap:12px;padding:11px 8px;border-radius:10px;font-variant-numeric:tabular-nums" style-hover="background:#1a212e">
+                    <div style="width:32px;height:32px;border-radius:9px;background:{{ s.color }}22;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11.5px;color:{{ s.color }};flex:none">{{ s.initials }}</div>
+                    <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600">{{ s.name }}</div><div style="font-size:11.5px;color:#7b8499">{{ s.dateFmt }} · carico {{ s.caricoFmt }} · controv. {{ s.totaleFmt }}</div></div>
+                    <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;background:{{ s.tagBg }};color:{{ s.tagColor }}">{{ s.tag }}</span>
+                    <div style="width:110px;text-align:right;font-size:14.5px;font-weight:700;color:{{ s.capColor }}">{{ s.capFmt }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <!-- zainetto -->
+            <div style="width:330px;flex:none;display:flex;flex-direction:column;gap:18px">
+              <div style="background:linear-gradient(135deg,#15202e,#121722);border:1px solid rgba(34,211,238,0.2);border-radius:18px;padding:22px">
+                <div style="display:flex;align-items:center;gap:9px;margin-bottom:6px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 8V6a3 3 0 013-3h6a3 3 0 013 3v2M4 8h16l-1 12a1 1 0 01-1 1H6a1 1 0 01-1-1L4 8z" stroke="#22D3EE" stroke-width="1.6" stroke-linejoin="round"/></svg><div style="font-size:15px;font-weight:700">Zainetto fiscale</div></div>
+                <div style="font-size:12px;color:#7b8499;margin-bottom:14px">Minusvalenze residue compensabili</div>
+                <div style="font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:600;font-variant-numeric:tabular-nums;color:#22D3EE">{{ zainettoNowFmt }}</div>
+                <sc-if value="{{ hasZainetto }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:10px;margin-top:18px">
+                  <sc-for list="{{ zainettoRows }}" as="z" hint-placeholder-count="1">
+                    <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#10151f;border:1px solid rgba(255,255,255,0.06);border-radius:12px;font-variant-numeric:tabular-nums">
+                      <div style="flex:1"><div style="font-size:13.5px;font-weight:600">{{ z.residuoFmt }}</div><div style="font-size:11px;color:#7b8499">{{ z.originFmt }} · {{ z.expiresFmt }}</div></div>
+                      <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;background:{{ z.urgBg }};color:{{ z.urgColor }};white-space:nowrap;flex:none">{{ z.yrsFmt }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+                </sc-if>
+              </div>
+              <div style="background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:20px">
+                <div style="font-size:14px;font-weight:700;margin-bottom:12px">Totali storici</div>
+                <div style="display:flex;flex-direction:column;gap:11px;font-variant-numeric:tabular-nums">
+                  <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span style="color:#7b8499;white-space:nowrap">Plusvalenze totali</span><span style="font-weight:600;color:#3FD68C;white-space:nowrap">{{ fiscoTotals.plusTotFmt }}</span></div>
+                  <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span style="color:#7b8499;white-space:nowrap">Minusvalenze totali</span><span style="font-weight:600;color:#F2596B;white-space:nowrap">{{ fiscoTotals.minusTotFmt }}</span></div>
+                  <div style="height:1px;background:rgba(255,255,255,0.06)"></div>
+                  <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span style="color:#7b8499;white-space:nowrap">Imposta totale versata</span><span style="font-weight:700;white-space:nowrap">{{ fiscoTotals.impostaTotFmt }}</span></div>
+                </div>
+              </div>
+              <div style="font-size:11.5px;color:#5a6275;line-height:1.5;padding:0 4px">Calcolo semplificato a scopo informativo. Le plusvalenze su fondi/ETF (redditi di capitale) seguono regole diverse e potrebbero non essere compensabili.</div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+
+  <!-- ============ MODALE ============ -->
+  <sc-if value="{{ showAdd }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeAdd }}" style="position:fixed;inset:0;background:rgba(5,7,12,0.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:50;animation:fadein .2s">
+    <div onClick="{{ stop }}" style="width:680px;max-height:90vh;overflow-y:auto;background:#11161f;border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:26px;box-shadow:0 30px 80px rgba(0,0,0,0.5)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
+        <div><div style="font-size:19px;font-weight:700">Nuova transazione</div><div style="font-size:12.5px;color:#7b8499;margin-top:2px">Verrà aggregata automaticamente nel portafoglio</div></div>
+        <div onClick="{{ closeAdd }}" style="width:34px;height:34px;border-radius:10px;background:#1a212e;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:#232c3b"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#aeb6c6" stroke-width="2" stroke-linecap="round"/></svg></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:18px">
+        <div onClick="{{ f.buy }}" style="flex:1;text-align:center;padding:12px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;background:{{ form.buyBg }};color:{{ form.buyFg }};border:1px solid {{ form.buyBorder }}">↓ Acquisto</div>
+        <div onClick="{{ f.sell }}" style="flex:1;text-align:center;padding:12px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;background:{{ form.sellBg }};color:{{ form.sellFg }};border:1px solid {{ form.sellBorder }}">↑ Vendita</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="grid-column:1 / -1">
+          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Asset / Ticker</label>
+          <input list="tk" value="{{ form.ticker }}" onInput="{{ f.ticker }}" placeholder="es. NVDA, BTC, IWDA…" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px;text-transform:uppercase"/>
+          <datalist id="tk"><sc-for list="{{ tickerOptions }}" as="o" hint-placeholder-count="8"><option value="{{ o.ticker }}">{{ o.name }}</option></sc-for></datalist>
+        </div>
+        <div>
+          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Nome</label>
+          <input value="{{ form.name }}" onInput="{{ f.name }}" placeholder="Nome asset" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px"/>
+        </div>
+        <div>
+          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Classe</label>
+          <select value="{{ form.cls }}" onChange="{{ f.cls }}" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px">
+            <option>Azioni</option><option>Criptovalute</option><option>Obbligazioni</option><option>Materie prime</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Data</label>
+          <input type="date" value="{{ form.date }}" onInput="{{ f.date }}" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 13px;color:#E8ECF4;font-size:14px"/>
+        </div>
+        <div>
+          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Valuta</label>
+          <select value="{{ form.currency }}" onChange="{{ f.currency }}" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px"><option>EUR</option><option>USD</option><option>GBP</option></select>
+        </div>
+        <div>
+          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Quantità</label>
+          <input value="{{ form.qty }}" onInput="{{ f.qty }}" placeholder="0" inputmode="decimal" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px;font-variant-numeric:tabular-nums"/>
+        </div>
+        <div>
+          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Prezzo unitario (€)</label>
+          <input value="{{ form.price }}" onInput="{{ f.price }}" placeholder="0,00" inputmode="decimal" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px;font-variant-numeric:tabular-nums"/>
+        </div>
+        <div>
+          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Commissioni (€)</label>
+          <input value="{{ form.fees }}" onInput="{{ f.fees }}" placeholder="0,00" inputmode="decimal" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px;font-variant-numeric:tabular-nums"/>
+        </div>
+        <div>
+          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Broker / Conto</label>
+          <input value="{{ form.broker }}" onInput="{{ f.broker }}" placeholder="es. Degiro" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px"/>
+        </div>
+        <div>
+          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">ISIN (opz.)</label>
+          <input value="{{ form.isin }}" onInput="{{ f.isin }}" placeholder="es. IE00B4L5Y983" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px"/>
+        </div>
+        <div>
+          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Prezzo attuale (opz.)</label>
+          <input value="{{ form.mkt }}" onInput="{{ f.mkt }}" placeholder="se nuovo asset" inputmode="decimal" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px;font-variant-numeric:tabular-nums"/>
+        </div>
+        <div style="grid-column:1 / -1">
+          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Note (opz.)</label>
+          <input value="{{ form.note }}" onInput="{{ f.note }}" placeholder="Promemoria…" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px"/>
+        </div>
+      </div>
+
+      <sc-if value="{{ form.isSell }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:18px;background:#0e131c;border:1px solid rgba(34,211,238,0.18);border-radius:14px;padding:16px 18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#8A93A6;letter-spacing:.03em"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z" stroke="#22D3EE" stroke-width="1.7" stroke-linejoin="round"/></svg>DETTAGLIO FISCALE</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11.5px;color:#7b8499">Aliquota</span>
+            <div onClick="{{ f.setRate125 }}" style="padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;background:{{ form.a125Bg }};color:{{ form.a125Fg }};border:1px solid {{ form.a125Border }}">12,5%</div>
+            <div onClick="{{ f.setRate26 }}" style="padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;background:{{ form.a26Bg }};color:{{ form.a26Fg }};border:1px solid {{ form.a26Border }}">26%</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-variant-numeric:tabular-nums">
+          <div><div style="font-size:11px;color:#7b8499;margin-bottom:4px">Prezzo di carico</div><div style="font-size:14px;font-weight:600">{{ form.caricoFmt }}</div></div>
+          <div><div style="font-size:11px;color:#7b8499;margin-bottom:4px">Quota interessi</div><div style="font-size:14px;font-weight:600">{{ form.interessiFmt }}</div></div>
+          <div><div style="font-size:11px;color:#7b8499;margin-bottom:4px">Quota capitale</div><div style="font-size:14px;font-weight:700;color:{{ form.capitaleColor }}">{{ form.capitaleFmt }}</div></div>
+          <div><div style="font-size:11px;color:#7b8499;margin-bottom:4px">Tassazione</div><div style="font-size:14px;font-weight:600;color:#F2596B">{{ form.taxFmt }}</div></div>
+          <div style="grid-column:span 2"><div style="font-size:11px;color:#7b8499;margin-bottom:4px">Netto rimanente</div><div style="font-size:16px;font-weight:700;color:{{ form.nettoColor }}">{{ form.nettoFmt }}</div></div>
+        </div>
+      </div>
+      </sc-if>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.06)">
+        <div style="font-size:13px;color:#7b8499">Controvalore stimato <span style="color:#E8ECF4;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums">{{ form.previewFmt }}</span></div>
+        <div style="display:flex;gap:10px">
+          <div onClick="{{ closeAdd }}" style="padding:11px 18px;border-radius:11px;background:#1a212e;color:#cdd4e0;font-weight:600;font-size:14px;cursor:pointer" style-hover="background:#232c3b">Annulla</div>
+          <div onClick="{{ submitAdd }}" style="padding:11px 22px;border-radius:11px;background:{{ form.submitBg }};color:#062028;font-weight:700;font-size:14px;cursor:pointer;opacity:{{ form.submitOpacity }}">Aggiungi transazione</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+
+  // ── Constants (loaded from market-data.js) ─────────────────────────────────
+
+  MARKET = window.MARKET_DATA;
+  CLS    = window.CLS_COLORS;
+  CASH   = window.CASH_BALANCE;
+
+  // ── State ──────────────────────────────────────────────────────────────────
+
+  state = {
+    view: 'dashboard', layout: 'overview', range: 'YTD', allocBy: 'asset',
+    showAdd: false, txFilter: 'Tutti', search: '',
+    custom: {}, expandedTx: null, fiscalYear: null, selAsset: null, selClass: null,
+    form: {
+      type: 'Acquisto', date: '2026-06-18',
+      ticker: '', name: '', cls: 'Azioni',
+      qty: '', price: '', fees: '0',
+      currency: 'EUR', broker: '', isin: '', mkt: '', note: '',
+      aliquota: '26',
+    },
+    tx: [...window.INITIAL_TX],
+    // auth
+    user: null, authLoading: true,
+    loginEmail: '', loginPass: '', loginError: '', loginLoading: false,
+  };
+
+  // ── Formatters ─────────────────────────────────────────────────────────────
+
+  eur(v)  { return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2, useGrouping: 'always' }).format(v || 0); }
+  eur0(v) { return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, useGrouping: 'always' }).format(v || 0); }
+  pct(v)  { return (v >= 0 ? '+' : '') + (v || 0).toFixed(2).replace('.', ',') + '%'; }
+  num(v)  { return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 4, useGrouping: 'always' }).format(v || 0); }
+  ini(s)  { return (s || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '?'; }
+
+  // ── Market helpers ─────────────────────────────────────────────────────────
+
+  getMkt(tk, t) {
+    const m = this.MARKET[tk] || this.state.custom[tk];
+    if (m) return m;
+    return { name: (t && t.name) || tk, cls: (t && t.cls) || 'Azioni', price: (t && Number(t.price)) || 0, day: 0, isin: '' };
+  }
+
+  // ── Portfolio aggregation ──────────────────────────────────────────────────
+
+  aggregate() {
+    const tx = [...this.state.tx].sort((a, b) => a.date < b.date ? -1 : 1);
+    const H = {};
+    for (const t of tx) {
+      const m = this.getMkt(t.ticker, t);
+      const h = H[t.ticker] || (H[t.ticker] = { ticker: t.ticker, name: m.name, cls: m.cls, isin: m.isin || '', qty: 0, cost: 0 });
+      const q = Number(t.qty) || 0, p = Number(t.price) || 0, f = Number(t.fees) || 0;
+      if (t.type === 'Acquisto') { h.qty += q; h.cost += q * p + f; }
+      else { const avg = h.qty > 0 ? h.cost / h.qty : 0; h.cost -= avg * q; h.qty -= q; }
+    }
+    return Object.values(H).filter(h => h.qty > 1e-9).map(h => {
+      const m = this.getMkt(h.ticker);
+      const price = m.price, day = m.day || 0, avg = h.cost / h.qty, value = h.qty * price, pl = value - h.cost;
+      const plPct = h.cost > 0 ? pl / h.cost * 100 : 0, dayVal = value - value / (1 + day / 100);
+      return { ...h, price, day, avg, value, pl, plPct, dayVal, color: this.CLS[h.cls] || '#5A6678' };
+    });
+  }
+
+  // ── Chart helpers ──────────────────────────────────────────────────────────
+
+  rng(seed) {
+    let s = seed % 2147483647;
+    if (s <= 0) s += 2147483646;
+    return () => { s = s * 16807 % 2147483647; return (s - 1) / 2147483646; };
+  }
+
+  buildHistory(range, end) {
+    const cfg = {
+      '1G': { n: 26, g: 0.006 }, '1S': { n: 30, g: 0.018 }, '1M': { n: 32, g: 0.045 },
+      '3M': { n: 42, g: 0.11  }, 'YTD':{ n: 50, g: 0.205 }, 'Max':{ n: 64, g: 1.32  },
+    }[range] || { n: 50, g: 0.2 };
+    const n = cfg.n, start = end / (1 + cfg.g), r = this.rng(range.length * 131 + n * 7);
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const fr    = i / (n - 1);
+      const trend = start + (end - start) * fr;
+      const wave  = Math.sin(fr * Math.PI * 3 + i * 0.45) * end * 0.011;
+      const noise = (r() - 0.5) * end * 0.012;
+      pts.push(trend + wave + noise);
+    }
+    pts[0] = start; pts[n - 1] = end;
+    const mn = Math.min(...pts), mx = Math.max(...pts), rng = mx - mn || 1;
+    const W = 1000, H = 240, pt = 18, pb = 18;
+    const xy   = pts.map((v, i) => [i / (n - 1) * W, H - pb - (v - mn) / rng * (H - pt - pb)]);
+    const line = 'M' + xy.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L ');
+    const area = line + ` L ${W} ${H} L 0 ${H} Z`;
+    const ret  = (end - start) / start * 100;
+    return { line, area, endY: xy[n - 1][1].toFixed(1), ret, retFmt: this.pct(ret), retColor: ret >= 0 ? '#3FD68C' : '#F2596B' };
+  }
+
+  assetSeries(start, end, tk) {
+    const n = 44, r = this.rng(tk.split('').reduce((a, c) => a + c.charCodeAt(0), 0) + 11);
+    const span = Math.abs(end - start) || Math.abs(end) || 1;
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const fr    = i / (n - 1);
+      const trend = start + (end - start) * fr;
+      const wave  = Math.sin(fr * Math.PI * 2.6 + i * 0.4) * span * 0.07;
+      const noise = (r() - 0.5) * span * 0.05;
+      pts.push(trend + wave + noise);
+    }
+    pts[0] = start; pts[n - 1] = end;
+    const mn = Math.min(...pts), mx = Math.max(...pts), rg = mx - mn || 1;
+    const W = 1000, H = 200, pt = 14, pb = 14;
+    const xy   = pts.map((v, i) => [i / (n - 1) * W, H - pb - (v - mn) / rg * (H - pt - pb)]);
+    const line = 'M' + xy.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L ');
+    return { line, area: line + ` L ${W} ${H} L 0 ${H} Z`, endY: xy[n - 1][1].toFixed(1) };
+  }
+
+  spark(tk, pos) {
+    const r = this.rng(tk.split('').reduce((a, c) => a + c.charCodeAt(0), 0) + 5);
+    const pts = [];
+    for (let i = 0; i < 20; i++) {
+      pts.push((pos ? i / 19 : 1 - i / 19) * 0.7 + (r() - 0.5) * 0.5);
+    }
+    const mn = Math.min(...pts), mx = Math.max(...pts), rg = mx - mn || 1;
+    return 'M' + pts.map((v, i) => (i / 19 * 100).toFixed(1) + ' ' + (28 - (v - mn) / rg * 24 - 2).toFixed(1)).join(' L ');
+  }
+
+  donutSegs(items) {
+    const C = 2 * Math.PI * 86; let cum = 0;
+    const tot = items.reduce((a, x) => a + x.value, 0) || 1;
+    return items.map(x => {
+      const p   = x.value / tot * 100;
+      const len = Math.max(0, p / 100 * C - 3);
+      const seg = { ...x, pct: p, dash: `${len.toFixed(2)} ${(C - len).toFixed(2)}`, offset: (-(cum / 100 * C)).toFixed(2) };
+      cum += p;
+      return seg;
+    });
+  }
+
+  // ── State mutations ────────────────────────────────────────────────────────
+
+  setS(patch)   { this.setState(patch); }
+  setForm(k, v) { this.setState(s => ({ form: { ...s.form, [k]: v } })); }
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+  async componentDidMount() {
+    const { data: { session } } = await window._sb.auth.getSession();
+    if (session) {
+      await this._loadFromDB(session.user);
+    } else {
+      this.setS({ authLoading: false });
+    }
+    this._authSub = window._sb.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN'  && session) await this._loadFromDB(session.user);
+      if (event === 'SIGNED_OUT') this.setState({ user: null, tx: [], custom: {}, authLoading: false });
+    });
+  }
+
+  componentWillUnmount() {
+    this._authSub?.data?.subscription?.unsubscribe();
+  }
+
+  // ── Supabase data loader ──────────────────────────────────────────────────
+
+  async _loadFromDB(user) {
+    const [{ data: txData }, { data: assetData }] = await Promise.all([
+      window._sb.from('transactions').select('*').eq('user_id', user.id).order('date'),
+      window._sb.from('custom_assets').select('*').eq('user_id', user.id),
+    ]);
+    const custom = {};
+    (assetData || []).forEach(a => {
+      custom[a.ticker] = { name: a.name, cls: a.cls, price: Number(a.price), day: Number(a.day), isin: a.isin || '' };
+    });
+    this.setState({
+      user, authLoading: false,
+      tx: (txData || []).map(t => ({ ...t, qty: Number(t.qty), price: Number(t.price), fees: Number(t.fees) })),
+      custom,
+    });
+  }
+
+  // ── Auth actions ──────────────────────────────────────────────────────────
+
+  doLogin = async () => {
+    const { loginEmail: email, loginPass: password } = this.state;
+    if (!email || !password) return;
+    this.setS({ loginLoading: true, loginError: '' });
+    const { error } = await window._sb.auth.signInWithPassword({ email, password });
+    if (error) this.setS({ loginLoading: false, loginError: error.message });
+    // successo: onAuthStateChange → _loadFromDB automaticamente
+  };
+
+  doLogout = async () => { await window._sb.auth.signOut(); };
+
+  submitAdd = async () => {
+    const f = this.state.form;
+    const q = Number(String(f.qty).replace(',', '.')), p = Number(String(f.price).replace(',', '.'));
+    if (!f.ticker || !q || !p) return;
+    const tk = f.ticker.toUpperCase();
+    const custom = { ...this.state.custom };
+    if (!this.MARKET[tk] && !custom[tk]) {
+      const newAsset = { name: f.name || tk, cls: f.cls, price: Number(String(f.mkt).replace(',', '.')) || p, day: 0, isin: f.isin || '' };
+      custom[tk] = newAsset;
+      await window._sb.from('custom_assets').upsert([{ user_id: this.state.user.id, ticker: tk, ...newAsset }]);
+    }
+    const txData = {
+      user_id: this.state.user.id,
+      date: f.date, type: f.type, ticker: tk,
+      qty: q, price: p, fees: Number(String(f.fees).replace(',', '.')) || 0,
+      currency: f.currency, broker: f.broker || '—',
+      isin: f.isin, note: f.note, name: f.name, cls: f.cls,
+      aliquota: f.type === 'Vendita' ? f.aliquota : null,
+    };
+    const { data, error } = await window._sb.from('transactions').insert([txData]).select().single();
+    if (error) { console.error('submitAdd:', error.message); return; }
+    this.setState(s => ({
+      tx: [...s.tx, { ...txData, id: data.id }], custom, showAdd: false,
+      form: { ...s.form, ticker: '', name: '', qty: '', price: '', fees: '0', broker: '', isin: '', mkt: '', note: '' },
+    }));
+  };
+
+  delTx = async (id) => {
+    await window._sb.from('transactions').delete().eq('id', id);
+    this.setState(s => ({ tx: s.tx.filter(t => t.id !== id) }));
+  };
+
+  // ── Fiscal calculations ────────────────────────────────────────────────────
+
+  saleFiscals() {
+    const tx = [...this.state.tx].sort((a, b) => a.date < b.date ? -1 : 1);
+    const H = {}, out = {};
+    for (const t of tx) {
+      const m = this.getMkt(t.ticker, t);
+      const h = H[t.ticker] || (H[t.ticker] = { qty: 0, cost: 0 });
+      const qn = Number(t.qty) || 0, p = Number(t.price) || 0, f = Number(t.fees) || 0;
+      if (t.type === 'Acquisto') { h.qty += qn; h.cost += qn * p + f; }
+      else {
+        const carico = h.qty > 0 ? h.cost / h.qty : 0;
+        const totale = qn * p, quotaInteressi = qn * carico, quotaCapitale = totale - quotaInteressi;
+        const rate = (t.aliquota != null && t.aliquota !== '') ? Number(t.aliquota) : (m.cls === 'Obbligazioni' ? 12.5 : 26);
+        const tax = Math.max(0, quotaCapitale) * rate / 100, netto = quotaCapitale - tax;
+        out[t.id] = { carico, totale, quotaInteressi, quotaCapitale, rate, tax, netto };
+        h.cost -= carico * qn; h.qty -= qn;
+      }
+    }
+    return out;
+  }
+
+  fiscalYears() {
+    const fisc  = this.saleFiscals();
+    const sells = [...this.state.tx].filter(t => t.type === 'Vendita').sort((a, b) => a.date < b.date ? -1 : 1);
+    const byYear = {};
+    sells.forEach(t => {
+      const fd = fisc[t.id]; if (!fd) return;
+      const m = this.getMkt(t.ticker, t);
+      const y = new Date(t.date).getFullYear();
+      (byYear[y] || (byYear[y] = [])).push({
+        id: t.id, date: t.date, ticker: t.ticker, name: m.name, cls: m.cls,
+        color: this.CLS[m.cls] || '#5A6678', carico: fd.carico, totale: fd.totale,
+        quotaCapitale: fd.quotaCapitale, rate: fd.rate,
+      });
+    });
+    const yrs = Object.keys(byYear).map(Number).sort((a, b) => a - b);
+    let pool = []; const out = [];
+    for (const y of yrs) {
+      pool = pool.filter(p => p.expires >= y && p.residuo > 1e-6);
+      const sales = byYear[y];
+      let plus = 0, minus = 0, wNum = 0, gSum = 0;
+      sales.forEach(s => {
+        if (s.quotaCapitale >= 0) { plus += s.quotaCapitale; wNum += s.quotaCapitale * s.rate; gSum += s.quotaCapitale; }
+        else { minus += (-s.quotaCapitale); }
+      });
+      const carryIn     = pool.reduce((a, p) => a + p.residuo, 0);
+      const compCurrent = Math.min(plus, minus);
+      const netGain     = plus - minus;
+      let compCarry = 0, imponibile = 0, nuovaMinus = 0;
+      if (netGain >= 0) {
+        compCarry = Math.min(netGain, carryIn);
+        let rem = compCarry;
+        pool.forEach(p => { if (rem <= 1e-9) return; const take = Math.min(p.residuo, rem); p.residuo -= take; rem -= take; });
+        imponibile = netGain - compCarry;
+      } else {
+        nuovaMinus = -netGain;
+        pool.push({ origin: y, residuo: nuovaMinus, expires: y + 4 });
+      }
+      const avgRate = gSum > 0 ? wNum / gSum : 26;
+      const imposta = imponibile * avgRate / 100;
+      pool = pool.filter(p => p.residuo > 1e-6);
+      const carryOut = pool.reduce((a, p) => a + p.residuo, 0);
+      out.push({ year: y, sales, plus, minus, compCurrent, carryIn, netGain, compCarry, imponibile, avgRate, imposta, nuovaMinus, carryOut, pool: pool.map(p => ({ ...p })) });
+    }
+    return out;
+  }
+
+  // ── Render helpers ─────────────────────────────────────────────────────────
+
+  _openAsset(tk) { this.setS({ selAsset: tk, selClass: null }); }
+  _openClass(c)  { this.setS({ selClass: c, selAsset: null }); }
+
+  _buildPortfolio(S) {
+    const G = '#3FD68C', R = '#F2596B';
+    const hs         = this.aggregate().sort((a, b) => b.value - a.value);
+    const assetValue = hs.reduce((a, h) => a + h.value,  0);
+    const invested   = hs.reduce((a, h) => a + h.cost,   0);
+    const dayPl      = hs.reduce((a, h) => a + h.dayVal, 0);
+    const totalValue = assetValue + this.CASH;
+    const pl     = assetValue - invested;
+    const plPct  = invested > 0 ? pl / invested * 100 : 0;
+    const dayPct = (totalValue - dayPl) > 0 ? dayPl / (totalValue - dayPl) * 100 : 0;
+
+    const holdings = hs.map(h => ({
+      ticker: h.ticker, name: h.name, cls: h.cls, color: h.color, initials: this.ini(h.ticker),
+      qtyFmt:    this.num(h.qty),   avgFmt:   this.eur(h.avg),
+      priceFmt:  this.eur(h.price), valueFmt: this.eur0(h.value),
+      plFmt:     (h.pl >= 0 ? '+' : '') + this.eur0(h.pl),
+      plPctFmt:  this.pct(h.plPct), plColor: h.plPct >= 0 ? G : R,
+      dayPctFmt: this.pct(h.day),
+      weight:    assetValue > 0 ? h.value / assetValue * 100 : 0,
+      weightFmt: (assetValue > 0 ? h.value / assetValue * 100 : 0).toFixed(1).replace('.', ',') + '%',
+      spark:     this.spark(h.ticker, h.plPct >= 0),
+      open:      () => this._openAsset(h.ticker),
+    }));
+
+    // allocazione per classe
+    const byClassMap = {};
+    hs.forEach(h => { byClassMap[h.cls] = (byClassMap[h.cls] || 0) + h.value; });
+    byClassMap['Liquidità'] = this.CASH;
+    const classArr  = Object.entries(byClassMap)
+      .map(([k, v]) => ({ label: k, value: v, color: this.CLS[k] || '#5A6678' }))
+      .sort((a, b) => b.value - a.value);
+    const classRows = classArr.map(c => ({
+      ...c,
+      valueFmt: this.eur0(c.value),
+      pct:    totalValue > 0 ? c.value / totalValue * 100 : 0,
+      pctFmt: (totalValue > 0 ? c.value / totalValue * 100 : 0).toFixed(1).replace('.', ',') + '%',
+      on: c.label !== 'Liquidità' ? (() => this._openClass(c.label)) : (() => {}),
+    }));
+
+    // donut
+    const palette = ['#5B9DF9', '#A78BFA', '#14B8A6', '#E5B567', '#F2596B', '#22D3EE', '#F59E0B', '#94A3B8'];
+    let donut, legend;
+    if (S.allocBy === 'classe') {
+      const segs = this.donutSegs(classArr).map(s => ({
+        ...s, valueFmt: this.eur0(s.value), pctFmt: s.pct.toFixed(1).replace('.', ',') + '%',
+        on: s.label !== 'Liquidità' ? (() => this._openClass(s.label)) : (() => {}),
+      }));
+      donut = segs; legend = segs;
+    } else {
+      const topI = hs.slice(0, 7).map((h, i) => ({ label: h.name, value: h.value, color: palette[i % palette.length], ticker: h.ticker }));
+      const rest = hs.slice(7).reduce((a, h) => a + h.value, 0);
+      if (rest > 0) topI.push({ label: 'Altri', value: rest, color: '#64748B' });
+      topI.push({ label: 'Liquidità', value: this.CASH, color: '#3a4150' });
+      const segs = this.donutSegs(topI).map(s => ({
+        ...s, valueFmt: this.eur0(s.value), pctFmt: s.pct.toFixed(1).replace('.', ',') + '%',
+        on: s.ticker ? (() => this._openAsset(s.ticker)) : (() => {}),
+      }));
+      donut = segs; legend = segs;
+    }
+    const donutClass = this.donutSegs(classArr);
+
+    // top / flop
+    const sortedReal = [...hs].sort((a, b) => b.plPct - a.plPct).map(h => ({
+      name: h.name, ticker: h.ticker, initials: this.ini(h.ticker), color: h.color,
+      valueFmt: this.eur0(h.value), plPctFmt: this.pct(h.plPct), plColor: h.plPct >= 0 ? G : R,
+      open: () => this._openAsset(h.ticker),
+    }));
+    const top  = sortedReal.slice(0, 5);
+    const flop = sortedReal.slice(-5).reverse();
+
+    const history = this.buildHistory(S.range, totalValue);
+
+    const kpi = {
+      totalValueFmt: this.eur0(totalValue), assetValueFmt: this.eur0(assetValue),
+      investedFmt:   this.eur0(invested),   cashFmt:       this.eur0(this.CASH),
+      plFmt:    (pl >= 0 ? '+' : '') + this.eur0(pl), plPctFmt: this.pct(plPct),
+      plColor:  pl >= 0 ? G : R, plBg: pl >= 0 ? 'rgba(63,214,140,0.13)' : 'rgba(242,89,107,0.13)',
+      dayPlFmt: (dayPl >= 0 ? '+' : '') + this.eur0(dayPl), dayPctFmt: this.pct(dayPct), dayColor: dayPl >= 0 ? G : R,
+      count: hs.length, classCount: classArr.filter(c => c.label !== 'Liquidità').length,
+    };
+
+    return { hs, assetValue, totalValue, kpi, holdings, classRows, donut, donutClass, legend, top, flop, history };
+  }
+
+  _buildTxList(S, hs, fisc) {
+    const G = '#3FD68C', R = '#F2596B';
+    const q = S.search.trim().toLowerCase();
+    let txRows = [...S.tx].sort((a, b) => a.date < b.date ? 1 : -1);
+    if (S.txFilter !== 'Tutti') txRows = txRows.filter(t => this.getMkt(t.ticker, t).cls === S.txFilter);
+    if (q) txRows = txRows.filter(t => {
+      const m = this.getMkt(t.ticker, t);
+      return (t.ticker + ' ' + m.name + ' ' + (m.isin || '')).toLowerCase().includes(q);
+    });
+    return txRows.map(t => {
+      const m   = this.getMkt(t.ticker, t);
+      const buy = t.type === 'Acquisto';
+      const fd  = fisc[t.id];
+      const exp = S.expandedTx === t.id;
+      return {
+        id: t.id,
+        dateFmt:  new Date(t.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }),
+        type: t.type, isBuy: buy, isSell: !buy,
+        badgeBg: buy ? 'rgba(63,214,140,0.13)' : 'rgba(242,89,107,0.13)', badgeFg: buy ? G : R,
+        ticker: t.ticker, name: m.name, color: this.CLS[m.cls] || '#5A6678', initials: this.ini(t.ticker),
+        qtyFmt:   this.num(t.qty),   priceFmt: this.eur(t.price),
+        totalFmt: this.eur0(Number(t.qty) * Number(t.price)), feesFmt: this.eur(t.fees), broker: t.broker || '—',
+        rowCursor: buy ? 'default' : 'pointer',
+        expanded:  exp, chevRot: exp ? 'rotate(90deg)' : 'rotate(0deg)',
+        toggle: buy ? (() => {}) : (() => this.setState(s => ({ expandedTx: s.expandedTx === t.id ? null : t.id }))),
+        del:    (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.delTx(t.id); },
+        caricoFmt:    fd ? this.eur(fd.carico)           : '—',
+        interessiFmt: fd ? this.eur(fd.quotaInteressi)   : '—',
+        capitaleFmt:  fd ? ((fd.quotaCapitale >= 0 ? '+' : '') + this.eur(fd.quotaCapitale)) : '—',
+        capitaleColor: fd && fd.quotaCapitale >= 0 ? G : R,
+        rateFmt:  fd ? (String(fd.rate).replace('.', ',') + '%') : '—',
+        taxFmt:   fd ? ('−' + this.eur(fd.tax))         : '—',
+        nettoFmt: fd ? ((fd.netto >= 0 ? '+' : '') + this.eur(fd.netto)) : '—',
+        nettoColor: fd && fd.netto >= 0 ? G : R,
+      };
+    });
+  }
+
+  _buildDrillDown(S, hs, assetValue, totalValue) {
+    const G = '#3FD68C', R = '#F2596B';
+    let assetDetail = null;
+    if (S.selAsset) {
+      const h = hs.find(x => x.ticker === S.selAsset);
+      if (h) {
+        const ser = this.assetSeries(h.cost, h.value, h.ticker);
+        const txs = [...S.tx]
+          .filter(t => t.ticker === h.ticker)
+          .sort((a, b) => a.date < b.date ? 1 : -1)
+          .map(t => {
+            const buy = t.type === 'Acquisto';
+            return {
+              dateFmt:  new Date(t.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }),
+              type: t.type,
+              badgeBg: buy ? 'rgba(63,214,140,0.13)' : 'rgba(242,89,107,0.13)', badgeFg: buy ? G : R,
+              qtyFmt: this.num(t.qty), priceFmt: this.eur(t.price),
+              totalFmt: this.eur0(Number(t.qty) * Number(t.price)), broker: t.broker || '—',
+            };
+          });
+        assetDetail = {
+          ticker: h.ticker, name: h.name, cls: h.cls, color: h.color, initials: this.ini(h.ticker), isin: h.isin || '—',
+          priceFmt: this.eur(h.price),   dayFmt:      this.pct(h.day),   dayColor:    h.day >= 0 ? G : R,
+          valueFmt: this.eur0(h.value),  investedFmt: this.eur0(h.cost), avgFmt:      this.eur(h.avg), qtyFmt: this.num(h.qty),
+          plFmt:    (h.pl >= 0 ? '+' : '') + this.eur0(h.pl), plPctFmt: this.pct(h.plPct), plColor: h.plPct >= 0 ? G : R,
+          weightFmt: (assetValue > 0 ? h.value / assetValue * 100 : 0).toFixed(1).replace('.', ',') + '%',
+          line: ser.line, area: ser.area, endY: ser.endY, chartColor: h.plPct >= 0 ? '#3FD68C' : '#F2596B',
+          txs, txCount: txs.length,
+        };
+      }
+    }
+    let classDetail = null;
+    if (S.selClass) {
+      const items = hs.filter(x => x.cls === S.selClass).sort((a, b) => b.value - a.value);
+      const tot   = items.reduce((a, x) => a + x.value, 0);
+      const cost  = items.reduce((a, x) => a + x.cost,  0);
+      const pl    = tot - cost;
+      classDetail = {
+        cls: S.selClass, color: this.CLS[S.selClass] || '#5A6678',
+        totalFmt: this.eur0(tot), countFmt: items.length,
+        plFmt:    (pl >= 0 ? '+' : '') + this.eur0(pl), plPctFmt: this.pct(cost > 0 ? pl / cost * 100 : 0), plColor: pl >= 0 ? G : R,
+        weightFmt: (totalValue > 0 ? tot / totalValue * 100 : 0).toFixed(1).replace('.', ',') + '%',
+        rows: items.map(x => ({
+          name: x.name, ticker: x.ticker, initials: this.ini(x.ticker), color: x.color,
+          valueFmt: this.eur0(x.value), qtyFmt: this.num(x.qty),
+          plPctFmt: this.pct(x.plPct), plColor: x.plPct >= 0 ? G : R,
+          weightFmt: (tot > 0 ? x.value / tot * 100 : 0).toFixed(1).replace('.', ',') + '%',
+          open: () => this._openAsset(x.ticker),
+        })),
+      };
+    }
+    return { assetDetail, classDetail };
+  }
+
+  _buildFiscoView(S) {
+    const G = '#3FD68C', R = '#F2596B';
+    const fy       = this.fiscalYears();
+    const allYears = fy.map(r => r.year);
+    const curYear  = S.fiscalYear != null && allYears.includes(S.fiscalYear)
+      ? S.fiscalYear : (allYears.length ? allYears[allYears.length - 1] : null);
+    const fyTabs = fy.map(r => ({
+      label: String(r.year), key: r.year,
+      bg: r.year === curYear ? '#22D3EE' : 'transparent',
+      fg: r.year === curYear ? '#062028' : '#8A93A6',
+      on: () => this.setS({ fiscalYear: r.year }),
+    }));
+    const cur          = fy.find(r => r.year === curYear);
+    const latestPool   = fy.length ? fy[fy.length - 1].pool : [];
+    const zainettoNow  = latestPool.reduce((a, p) => a + p.residuo, 0);
+    const nowYear      = 2026;
+    const zainettoRows = latestPool.map(p => {
+      const yrsLeft = p.expires - nowYear;
+      return {
+        originFmt:  'Minus. ' + p.origin,
+        residuoFmt: this.eur(p.residuo),
+        expiresFmt: 'scade 31/12/' + p.expires,
+        urgColor: yrsLeft <= 0 ? '#F2596B' : (yrsLeft === 1 ? '#E5B567' : '#22D3EE'),
+        urgBg:    yrsLeft <= 0 ? 'rgba(242,89,107,0.13)' : (yrsLeft === 1 ? 'rgba(229,181,103,0.13)' : 'rgba(34,211,238,0.1)'),
+        yrsFmt:   yrsLeft <= 0 ? 'ultimo anno' : (yrsLeft + ' anni'),
+      };
+    });
+    const fiscoTotals = {
+      impostaTotFmt: this.eur(fy.reduce((a, r) => a + r.imposta, 0)),
+      plusTotFmt:    this.eur(fy.reduce((a, r) => a + r.plus,    0)),
+      minusTotFmt:   this.eur(fy.reduce((a, r) => a + r.minus,   0)),
+    };
+    let curDetail = null;
+    if (cur) {
+      curDetail = {
+        yearFmt:        String(cur.year),
+        plusFmt:        this.eur(cur.plus),
+        minusFmt:       '−' + this.eur(cur.minus),
+        compCurrentFmt: '−' + this.eur(cur.compCurrent),
+        carryInFmt:     this.eur(cur.carryIn),
+        compCarryFmt:   '−' + this.eur(cur.compCarry),
+        netGainFmt:     (cur.netGain >= 0 ? '+' : '') + this.eur(cur.netGain), netColor: cur.netGain >= 0 ? G : R,
+        imponibileFmt:  this.eur(cur.imponibile),
+        rateFmt:        cur.avgRate.toFixed(cur.avgRate % 1 ? 1 : 0).replace('.', ',') + '%',
+        impostaFmt:     this.eur(cur.imposta),
+        carryOutFmt:    this.eur(cur.carryOut),
+        nuovaMinusFmt:  cur.nuovaMinus > 0 ? ('+' + this.eur(cur.nuovaMinus)) : null,
+        hasCarryIn:     cur.carryIn > 0.01,
+        sales: cur.sales.map(s => ({
+          name: s.name, ticker: s.ticker, color: this.CLS[s.cls] || '#5A6678', initials: this.ini(s.ticker),
+          dateFmt:   new Date(s.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }),
+          totaleFmt: this.eur0(s.totale), caricoFmt: this.eur(s.carico),
+          capFmt:    (s.quotaCapitale >= 0 ? '+' : '') + this.eur(s.quotaCapitale), capColor: s.quotaCapitale >= 0 ? G : R,
+          tag:       s.quotaCapitale >= 0 ? 'Plusvalenza' : 'Minusvalenza',
+          tagColor:  s.quotaCapitale >= 0 ? G : R,
+          tagBg:     s.quotaCapitale >= 0 ? 'rgba(63,214,140,0.12)' : 'rgba(242,89,107,0.12)',
+        })),
+      };
+    }
+    return { fyTabs, curDetail, hasFisco: fy.length > 0, zainettoNowFmt: this.eur(zainettoNow), zainettoRows, hasZainetto: zainettoRows.length > 0, fiscoTotals };
+  }
+
+  _buildForm(S, hs) {
+    const G = '#3FD68C', R = '#F2596B';
+    const f  = S.form;
+    const fq = Number(String(f.qty).replace(',', '.'))   || 0;
+    const fp = Number(String(f.price).replace(',', '.')) || 0;
+    const valid  = f.ticker && fq > 0 && fp > 0;
+    const isBuy  = f.type === 'Acquisto';
+    const fHold  = hs.find(h => h.ticker === (f.ticker || '').toUpperCase());
+    const fCarico    = fHold ? fHold.avg : 0;
+    const fTotale    = fq * fp, fInteressi = fq * fCarico, fCapitale = fTotale - fInteressi;
+    const fRate      = Number(String(f.aliquota).replace(',', '.')) || 0;
+    const fTax       = Math.max(0, fCapitale) * fRate / 100;
+    const fNetto     = fCapitale - fTax;
+    const aSel       = String(f.aliquota);
+    return {
+      ...f,
+      buyBg:      isBuy  ? 'rgba(63,214,140,0.14)' : '#0d121b',
+      buyFg:      isBuy  ? G : '#7b8499',
+      buyBorder:  isBuy  ? 'rgba(63,214,140,0.4)'  : 'rgba(255,255,255,0.08)',
+      sellBg:     !isBuy ? 'rgba(242,89,107,0.14)' : '#0d121b',
+      sellFg:     !isBuy ? R : '#7b8499',
+      sellBorder: !isBuy ? 'rgba(242,89,107,0.4)'  : 'rgba(255,255,255,0.08)',
+      previewFmt:    this.eur(fq * fp),
+      submitBg:      valid ? '#22D3EE' : '#1c4750',
+      submitOpacity: valid ? '1' : '0.5',
+      isSell: !isBuy, hasCarico: !isBuy && !!fHold,
+      caricoFmt:    fHold ? this.eur(fCarico) : '— (nessuna posizione)',
+      interessiFmt: this.eur(fInteressi),
+      capitaleFmt:  (fCapitale >= 0 ? '+' : '') + this.eur(fCapitale), capitaleColor: fCapitale >= 0 ? G : R,
+      taxFmt:       '−' + this.eur(fTax),
+      nettoFmt:     (fNetto >= 0 ? '+' : '') + this.eur(fNetto), nettoColor: fNetto >= 0 ? G : R,
+      a125Bg:     aSel === '12.5' ? 'rgba(34,211,238,0.16)' : '#0d121b',
+      a125Fg:     aSel === '12.5' ? '#22D3EE' : '#7b8499',
+      a125Border: aSel === '12.5' ? 'rgba(34,211,238,0.45)' : 'rgba(255,255,255,0.08)',
+      a26Bg:      aSel === '26'   ? 'rgba(34,211,238,0.16)' : '#0d121b',
+      a26Fg:      aSel === '26'   ? '#22D3EE' : '#7b8499',
+      a26Border:  aSel === '26'   ? 'rgba(34,211,238,0.45)' : 'rgba(255,255,255,0.08)',
+    };
+  }
+
+  // ── Main render ───────────────────────────────────────────────────────────
+
+  renderVals() {
+    const S = this.state;
+
+    // dati portafoglio
+    const { hs, assetValue, totalValue, kpi, holdings, classRows, donut, donutClass, legend, top, flop, history } = this._buildPortfolio(S);
+    const fisc                    = this.saleFiscals();
+    const txList                  = this._buildTxList(S, hs, fisc);
+    const { assetDetail, classDetail } = this._buildDrillDown(S, hs, assetValue, totalValue);
+    const fiscoView               = this._buildFiscoView(S);
+    const form                    = this._buildForm(S, hs);
+
+    // tab di navigazione
+    const rangeTabs  = ['1G', '1S', '1M', '3M', 'YTD', 'Max'].map(k => ({
+      label: k, bg: k === S.range   ? '#222c3c' : 'transparent', fg: k === S.range   ? '#E8ECF4' : '#8A93A6', on: () => this.setS({ range: k }),
+    }));
+    const layoutTabs = [['overview', 'Panoramica'], ['focus', 'Focus'], ['dense', 'Analitica']].map(([k, l]) => ({
+      label: l, bg: k === S.layout  ? '#22D3EE' : 'transparent', fg: k === S.layout  ? '#062028' : '#8A93A6', on: () => this.setS({ layout: k }),
+    }));
+    const allocTabs  = [['asset', 'Asset'], ['classe', 'Classe']].map(([k, l]) => ({
+      label: l, bg: k === S.allocBy ? '#222c3c' : 'transparent', fg: k === S.allocBy ? '#E8ECF4' : '#8A93A6', on: () => this.setS({ allocBy: k }),
+    }));
+    const txFilters  = ['Tutti', 'Azioni', 'Criptovalute', 'Obbligazioni', 'Materie prime'].map(k => ({
+      label: k, bg: k === S.txFilter ? '#222c3c' : 'transparent', fg: k === S.txFilter ? '#E8ECF4' : '#8A93A6', on: () => this.setS({ txFilter: k }),
+    }));
+
+    // handler form
+    const f = {
+      buy:  () => this.setForm('type', 'Acquisto'),
+      sell: () => this.setForm('type', 'Vendita'),
+      ticker: (e) => {
+        const v = e.target.value.toUpperCase();
+        const m = this.MARKET[v] || this.state.custom[v];
+        if (m) this.setState(s => ({ form: { ...s.form, ticker: v, name: m.name, cls: m.cls, isin: m.isin || '', aliquota: m.cls === 'Obbligazioni' ? '12.5' : '26' } }));
+        else this.setForm('ticker', v);
+      },
+      name:       (e) => this.setForm('name',     e.target.value),
+      cls:        (e) => this.setState(s => ({ form: { ...s.form, cls: e.target.value, aliquota: e.target.value === 'Obbligazioni' ? '12.5' : '26' } })),
+      date:       (e) => this.setForm('date',     e.target.value),
+      currency:   (e) => this.setForm('currency', e.target.value),
+      qty:        (e) => this.setForm('qty',      e.target.value),
+      price:      (e) => this.setForm('price',    e.target.value),
+      fees:       (e) => this.setForm('fees',     e.target.value),
+      broker:     (e) => this.setForm('broker',   e.target.value),
+      isin:       (e) => this.setForm('isin',     e.target.value),
+      mkt:        (e) => this.setForm('mkt',      e.target.value),
+      note:       (e) => this.setForm('note',     e.target.value),
+      setRate125: () => this.setForm('aliquota', '12.5'),
+      setRate26:  () => this.setForm('aliquota', '26'),
+    };
+
+    return {
+      // navigazione
+      pageTitle:  S.view === 'dashboard' ? 'Dashboard' : (S.view === 'fisco' ? 'Fisco' : 'Transazioni'),
+      isDash:     S.view === 'dashboard', isTx: S.view === 'transactions', isFisco: S.view === 'fisco',
+      navDashBg:  S.view === 'dashboard'    ? '#1a2331' : 'transparent', navDashFg:  S.view === 'dashboard'    ? '#22D3EE' : '#6b7488',
+      navTxBg:    S.view === 'transactions' ? '#1a2331' : 'transparent', navTxFg:    S.view === 'transactions' ? '#22D3EE' : '#6b7488',
+      navFiscoBg: S.view === 'fisco'        ? '#1a2331' : 'transparent', navFiscoFg: S.view === 'fisco'        ? '#22D3EE' : '#6b7488',
+      goDash:     () => this.setS({ view: 'dashboard'    }),
+      goTx:       () => this.setS({ view: 'transactions' }),
+      goFisco:    () => this.setS({ view: 'fisco'        }),
+      // layout
+      isOverview: S.layout === 'overview', isFocus: S.layout === 'focus', isDense: S.layout === 'dense',
+      // ui
+      search:   S.search, onSearch: (e) => this.setS({ search: e.target.value }),
+      openAdd:  () => this.setS({ showAdd: true  }),
+      closeAdd: () => this.setS({ showAdd: false }),
+      stop:     (e) => e.stopPropagation(),
+      submitAdd: this.submitAdd, showAdd: S.showAdd,
+      // tab
+      rangeTabs, layoutTabs, allocTabs, txFilters, rangeLabel: S.range,
+      // portafoglio
+      kpi, holdings, classRows, donut, donutClass, legend, top, flop, history,
+      // drill-down
+      assetDetail, classDetail,
+      closeAsset: () => this.setS({ selAsset: null }),
+      closeClass: () => this.setS({ selClass: null }),
+      // transazioni
+      txList, txCount: S.tx.length, txFilter: S.txFilter,
+      // fisco
+      ...fiscoView,
+      // form
+      form, f,
+      tickerOptions: Object.entries(this.MARKET).map(([k, v]) => ({ ticker: k, name: v.name })),
+      // auth
+      authLoading:   S.authLoading,
+      showLogin:     !S.authLoading && !S.user,
+      loginEmail:    S.loginEmail,  loginPass:  S.loginPass,
+      loginError:    S.loginError,
+      loginBtnBg:    S.loginLoading ? 'rgba(34,211,238,0.4)' : '#22D3EE',
+      loginBtnLabel: S.loginLoading ? 'Accesso in corso…' : 'Accedi',
+      onLoginEmail:  (e) => this.setS({ loginEmail: e.target.value }),
+      onLoginPass:   (e) => this.setS({ loginPass:  e.target.value }),
+      doLogin:       this.doLogin,
+      doLogout:      this.doLogout,
+      userEmail:     S.user?.email || '',
+      userInitials:  (S.user?.email || '??').slice(0, 2).toUpperCase(),
+    };
+  }
+}
+
+</script>
+</body>
+</html>
