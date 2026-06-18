@@ -29,11 +29,14 @@ const _ISIN_TICKER = {
 // ── Rilevamento classe da nome prodotto ────────────────────────────────────────
 function _detectClass(name) {
   const n = name.toUpperCase();
-  if (/\bMTN\b|BOND|OBBLIGAZ|\bBTP\b|\bBOT\b|\bGOVT\b|TREASURY|GILT/.test(n)) return 'Obbligazioni';
-  if (/OVERNIGHT|MONEY.MARKET|LIQUIDITY|CASH|ESTR/.test(n))                     return 'Liquidità';
+  // Bond diretti (senza wrapper ETF)
+  if (/\bMTN\b|\bGOVT\b|TREASURY|GILT|\bBTP\b|\bBOT\b/.test(n) && !/UCITS|ETF\b/.test(n)) return 'Obbligazioni';
+  // Qualsiasi prodotto strutturato come ETF/ETC/ETN
+  if (/UCITS|\bETF\b|\bETC\b|\bETN\b/.test(n))                                  return 'ETF';
+  // Asset diretti
   if (/BITCOIN|ETHEREUM|CRYPTO|\bBTC\b|\bETH\b/.test(n))                        return 'Criptovalute';
   if (/\bGOLD\b|SILVER|OIL|COMMODITY|METAL|\bGAS\b/.test(n))                   return 'Materie prime';
-  if (/UCITS|ETF\b|\bETC\b|\bETN\b/.test(n))                                   return 'ETF';
+  if (/OVERNIGHT|MONEY.MARKET|LIQUIDITY|CASH/.test(n))                          return 'Liquidità';
   return 'Azioni';
 }
 
