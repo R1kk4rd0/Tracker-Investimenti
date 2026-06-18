@@ -8,6 +8,7 @@
 <script src="./transactions.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./config.js"></script>
+<script src="./import.js"></script>
 </head>
 <body>
 <x-dc>
@@ -365,6 +366,11 @@
           </div>
           <div style="flex:1"></div>
           <div style="font-size:13px;color:#7b8499">{{ txCount }} transazioni</div>
+          <label style="display:flex;align-items:center;gap:7px;background:#141a26;border:1px solid rgba(255,255,255,0.08);color:#E8ECF4;font-weight:600;font-size:13px;padding:9px 15px;border-radius:11px;cursor:pointer">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2M12 3v12M8 9l4-4 4 4" stroke="#22D3EE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Importa CSV
+            <input type="file" accept=".csv,.txt" onChange="{{ onImportFile }}" style="display:none"/>
+          </label>
         </div>
         <div style="background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;overflow:hidden">
           <div style="display:flex;padding:13px 22px;font-size:11px;color:#7b8499;font-weight:700;letter-spacing:.03em;border-bottom:1px solid rgba(255,255,255,0.05)">
@@ -497,6 +503,64 @@
     </div>
   </div>
 
+  <!-- ============ MODALE IMPORT CSV ============ -->
+  <sc-if value="{{ showImport }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeImport }}" style="position:fixed;inset:0;background:rgba(5,7,12,0.82);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:60;animation:fadein .2s">
+    <div onClick="{{ stop }}" style="width:min(1080px,96vw);max-height:88vh;display:flex;flex-direction:column;background:#11161f;border:1px solid rgba(255,255,255,0.08);border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,0.6)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:22px 28px;border-bottom:1px solid rgba(255,255,255,0.06);flex:none">
+        <div>
+          <div style="font-size:18px;font-weight:700">Importa transazioni · {{ importBroker }}</div>
+          <div style="font-size:12.5px;color:#7b8499;margin-top:3px">{{ importCount }} righe rilevate · compila il Ticker dove mancante, poi conferma</div>
+        </div>
+        <div onClick="{{ closeImport }}" style="width:34px;height:34px;border-radius:10px;background:#1a212e;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#aeb6c6" stroke-width="2" stroke-linecap="round"/></svg></div>
+      </div>
+      <div style="display:flex;padding:10px 28px;font-size:11px;color:#7b8499;font-weight:700;letter-spacing:.04em;border-bottom:1px solid rgba(255,255,255,0.05);flex:none">
+        <div style="width:34px"></div>
+        <div style="width:96px">DATA</div>
+        <div style="width:90px">TIPO</div>
+        <div style="flex:1">PRODOTTO</div>
+        <div style="width:116px">TICKER *</div>
+        <div style="width:120px">CLASSE</div>
+        <div style="width:66px;text-align:right">QTÀ</div>
+        <div style="width:90px;text-align:right">PREZZO</div>
+        <div style="width:72px;text-align:right">COMM.</div>
+      </div>
+      <div style="flex:1;overflow-y:auto">
+        <sc-for list="{{ importPreviewRows }}" as="r" hint-placeholder-count="8">
+          <div style="display:flex;align-items:center;padding:9px 28px;border-bottom:1px solid rgba(255,255,255,0.03);opacity:{{ r.rowOpacity }}">
+            <div onClick="{{ r.onToggle }}" style="width:34px;cursor:pointer">
+              <div style="width:18px;height:18px;border-radius:5px;border:1.5px solid {{ r.checkBorder }};background:{{ r.checkBg }};display:flex;align-items:center;justify-content:center">
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="{{ r.checkFg }}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div style="width:96px;font-size:12.5px;color:#cdd4e0">{{ r.dateStr }}</div>
+            <div style="width:90px"><span style="font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:6px;background:{{ r.typeBg }};color:{{ r.typeFg }}">{{ r.type }}</span></div>
+            <div style="flex:1;font-size:12px;color:#8A93A6;padding-right:14px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="{{ r.name }}">{{ r.nameShort }}</div>
+            <div style="width:116px">
+              <input value="{{ r.ticker }}" onInput="{{ r.onTicker }}" placeholder="es. EIMI" style="width:100%;background:{{ r.tickerBg }};border:1.5px solid {{ r.tickerBorder }};border-radius:7px;padding:5px 8px;color:#E8ECF4;font-size:13px;font-weight:700;text-transform:uppercase;font-family:inherit;outline:none;box-sizing:border-box"/>
+            </div>
+            <div style="width:120px;padding-left:8px">
+              <select value="{{ r.cls }}" onChange="{{ r.onCls }}" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:5px 6px;color:#E8ECF4;font-size:12px;font-family:inherit;outline:none">
+                <option>Azioni</option><option>Obbligazioni</option><option>Criptovalute</option><option>Materie prime</option><option>Liquidità</option>
+              </select>
+            </div>
+            <div style="width:66px;text-align:right;font-size:13px;font-variant-numeric:tabular-nums;color:#cdd4e0">{{ r.qtyStr }}</div>
+            <div style="width:90px;text-align:right;font-size:12.5px;font-variant-numeric:tabular-nums;color:#cdd4e0">{{ r.priceStr }}</div>
+            <div style="width:72px;text-align:right;font-size:12px;color:#7b8499">{{ r.feesStr }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-top:1px solid rgba(255,255,255,0.06);flex:none">
+        <div style="font-size:12.5px;color:#5a6275">* Ticker obbligatorio per importare. Le righe senza ticker vengono saltate.</div>
+        <div style="display:flex;gap:10px">
+          <div onClick="{{ closeImport }}" style="padding:11px 22px;border-radius:11px;background:#1a212e;color:#E8ECF4;font-weight:600;font-size:14px;cursor:pointer">Annulla</div>
+          <div onClick="{{ confirmImport }}" style="padding:11px 22px;border-radius:11px;background:{{ importBtnBg }};color:#062028;font-weight:700;font-size:14px;cursor:pointer">{{ importBtnLabel }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
   <!-- ============ MODALE ============ -->
   <sc-if value="{{ showAdd }}" hint-placeholder-val="{{ false }}">
   <div onClick="{{ closeAdd }}" style="position:fixed;inset:0;background:rgba(5,7,12,0.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:50;animation:fadein .2s">
@@ -624,6 +688,8 @@ class Component extends DCLogic {
     // auth
     user: null, authLoading: true,
     loginEmail: '', loginPass: '', loginError: '', loginLoading: false,
+    // import CSV
+    importRows: null, importBroker: '',
   };
 
   // ── Formatters ─────────────────────────────────────────────────────────────
@@ -789,6 +855,74 @@ class Component extends DCLogic {
   };
 
   doLogout = async () => { await window._sb.auth.signOut(); };
+
+  // ── Import CSV ────────────────────────────────────────────────────────────
+
+  onImportFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = window.IMPORT.detectAndParse(ev.target.result);
+      if (result) this.setS({ importRows: result.rows, importBroker: result.broker });
+      else alert('Formato CSV non riconosciuto. Al momento è supportato solo DEGIRO.');
+      e.target.value = '';
+    };
+    reader.readAsText(file, 'UTF-8');
+  };
+
+  toggleImportRow = (i) => {
+    this.setState(s => {
+      const rows = [...s.importRows];
+      rows[i] = { ...rows[i], _sel: !rows[i]._sel };
+      return { importRows: rows };
+    });
+  };
+
+  updateImportRow = (i, key, val) => {
+    this.setState(s => {
+      const rows = [...s.importRows];
+      rows[i] = { ...rows[i], [key]: val };
+      return { importRows: rows };
+    });
+  };
+
+  confirmImport = async () => {
+    const { importRows, user } = this.state;
+    const toImport = (importRows || []).filter(r => r._sel && r.ticker.trim());
+    if (!toImport.length) return;
+
+    const custom = { ...this.state.custom };
+    const newAssets = [];
+    for (const r of toImport) {
+      const tk = r.ticker.trim().toUpperCase();
+      if (!this.MARKET[tk] && !custom[tk]) {
+        const a = { name: r.name, cls: r.cls, price: r.price, day: 0, isin: r.isin || '' };
+        custom[tk] = a;
+        newAssets.push({ user_id: user.id, ticker: tk, ...a });
+      }
+    }
+    if (newAssets.length) await window._sb.from('custom_assets').upsert(newAssets);
+
+    const dbRows = toImport.map(r => ({
+      user_id: user.id,
+      date: r.date, type: r.type,
+      ticker: r.ticker.trim().toUpperCase(),
+      name: r.name, cls: r.cls,
+      qty: r.qty, price: r.price, fees: r.fees,
+      currency: r.currency, broker: r.broker,
+      isin: r.isin || '', note: r.note || '',
+      aliquota: r.type === 'Vendita' ? (r.cls === 'Obbligazioni' ? '12.5' : '26') : null,
+    }));
+
+    const { data, error } = await window._sb.from('transactions').insert(dbRows).select();
+    if (error) { console.error('import error:', error.message); return; }
+
+    this.setState(s => ({
+      tx: [...s.tx, ...(data || []).map(t => ({ ...t, qty: Number(t.qty), price: Number(t.price), fees: Number(t.fees) }))],
+      custom, importRows: null, importBroker: '',
+    }));
+  };
 
   submitAdd = async () => {
     const f = this.state.form;
@@ -1258,6 +1392,34 @@ class Component extends DCLogic {
       // form
       form, f,
       tickerOptions: Object.entries(this.MARKET).map(([k, v]) => ({ ticker: k, name: v.name })),
+      // import CSV
+      showImport:    !!S.importRows,
+      importCount:   (S.importRows || []).length,
+      importBroker:  S.importBroker,
+      importBtnBg:   '#22D3EE',
+      importBtnLabel: `Importa ${(S.importRows || []).filter(r => r._sel && r.ticker.trim()).length} transazioni →`,
+      confirmImport: this.confirmImport,
+      closeImport:   () => this.setS({ importRows: null }),
+      onImportFile:  this.onImportFile,
+      importPreviewRows: (S.importRows || []).map((r, i) => ({
+        ...r,
+        onToggle: () => this.toggleImportRow(i),
+        onTicker: (e) => this.updateImportRow(i, 'ticker', e.target.value.toUpperCase()),
+        onCls:    (e) => this.updateImportRow(i, 'cls', e.target.value),
+        rowOpacity:  r._sel ? '1' : '0.4',
+        typeBg:      r.type === 'Acquisto' ? 'rgba(63,214,140,0.12)' : 'rgba(242,89,107,0.12)',
+        typeFg:      r.type === 'Acquisto' ? '#3FD68C' : '#F2596B',
+        nameShort:   r.name.length > 42 ? r.name.slice(0, 42) + '…' : r.name,
+        dateStr:     r.date,
+        qtyStr:      r.qty.toLocaleString('it-IT'),
+        priceStr:    r.price.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 4 }),
+        feesStr:     r.fees.toFixed(2) + ' €',
+        checkBg:     r._sel ? '#22D3EE' : 'transparent',
+        checkBorder: r._sel ? '#22D3EE' : 'rgba(255,255,255,0.2)',
+        checkFg:     r._sel ? '#062028' : 'transparent',
+        tickerBg:    r.ticker ? '#0d121b' : 'rgba(242,89,107,0.07)',
+        tickerBorder: r.ticker ? 'rgba(255,255,255,0.08)' : 'rgba(242,89,107,0.4)',
+      })),
       // auth
       authLoading:   S.authLoading,
       showLogin:     !S.authLoading && !S.user,
