@@ -22,4 +22,4 @@ window.CLS_COLORS = {
 };
 
 // Liquidità disponibile (€)
-window.CASH_BALANCE = 18500;
+window.CASH_BALANCE = 0;
