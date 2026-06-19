@@ -11,6 +11,7 @@ const _YF = {
   // Xtrackers ETF — Xetra (EUR)
   'XMMO': 'XMMO.DE', 'XEON': 'XEON.DE', 'XDWD': 'XDWD.DE',
   'DBXD': 'DBXD.DE', 'DBXJ': 'DBXJ.DE',
+  'DBXT': 'XEON.DE',  // Xtrackers II EUR Overnight Rate Swap, ISIN LU0290358497
   // Vanguard ETF
   'VEUR': 'VEUR.AS', 'VFEM': 'VFEM.AS', 'VDEA': 'VDEA.L',
   // Amundi / Lyxor ETF
@@ -28,6 +29,7 @@ const _YF = {
   'ABTC': 'ABTC.SW',
   // Materie prime (USD)
   'GOLD': 'GC=F', 'PHAU': 'PHAU.L', 'SLVR': 'SI=F',
+  '8PSD': '8PSD.DE',  // Invesco Physical Gold ETC, ISIN IE00B579F325
 };
 
 const _EDGE_URL  = 'https://qpmwcydwsbfztxkivndk.supabase.co/functions/v1/prices';
