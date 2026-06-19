@@ -325,45 +325,127 @@
         <!-- ===== LAYOUT: ANALITICA ===== -->
         <sc-if value="{{ isDense }}" hint-placeholder-val="{{ true }}">
         <div style="display:flex;gap:18px;align-items:flex-start">
-          <div style="flex:1;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;overflow:hidden">
-            <div style="padding:18px 22px;font-size:15px;font-weight:700;border-bottom:1px solid rgba(255,255,255,0.05)">Posizioni · dettaglio</div>
-            <div style="display:flex;padding:11px 22px;font-size:11px;color:#7b8499;font-weight:700;letter-spacing:.03em;border-bottom:1px solid rgba(255,255,255,0.05)">
-              <div style="flex:2.2">ASSET</div><div style="flex:1;text-align:right">Q.TÀ</div><div style="flex:1.3;text-align:right">P. MEDIO</div><div style="flex:1.3;text-align:right">P. ATTUALE</div><div style="flex:1.3;text-align:right">VALORE</div><div style="flex:1;text-align:right">PESO</div><div style="flex:1.3;text-align:right">P&L %</div><div style="flex:1.6;text-align:center">SPARK</div>
+
+          <!-- ── tabella posizioni ── -->
+          <div style="flex:1;min-width:0;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;overflow:hidden">
+
+            <!-- header card con filtri classe -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 20px;border-bottom:1px solid rgba(255,255,255,0.05)">
+              <div style="font-size:15px;font-weight:700">Posizioni · dettaglio</div>
+              <div style="display:flex;gap:4px">
+                <sc-for list="{{ analFilterTabs }}" as="ft" hint-placeholder-count="4">
+                  <div onClick="{{ ft.on }}" style="padding:5px 11px;border-radius:7px;font-size:11.5px;font-weight:700;cursor:pointer;background:{{ ft.bg }};color:{{ ft.fg }};transition:background .12s">{{ ft.label }}</div>
+                </sc-for>
+              </div>
             </div>
+
+            <!-- header colonne — clic per ordinare -->
+            <div style="display:flex;align-items:center;padding:9px 20px;font-size:10.5px;font-weight:700;letter-spacing:.06em;border-bottom:1px solid rgba(255,255,255,0.05);user-select:none">
+              <div onClick="{{ analCols.name.on }}" style="flex:2.4;cursor:pointer;color:{{ analCols.name.color }}" style-hover="color:#cdd4e0">{{ analCols.name.label }}</div>
+              <div onClick="{{ analCols.qty.on }}"   style="flex:0.75;text-align:right;cursor:pointer;color:{{ analCols.qty.color }}" style-hover="color:#cdd4e0">{{ analCols.qty.label }}</div>
+              <div onClick="{{ analCols.avg.on }}"   style="flex:1.25;text-align:right;cursor:pointer;color:{{ analCols.avg.color }}" style-hover="color:#cdd4e0">{{ analCols.avg.label }}</div>
+              <div onClick="{{ analCols.price.on }}" style="flex:1.25;text-align:right;cursor:pointer;color:{{ analCols.price.color }}" style-hover="color:#cdd4e0">{{ analCols.price.label }}</div>
+              <div onClick="{{ analCols.value.on }}" style="flex:1.2;text-align:right;cursor:pointer;color:{{ analCols.value.color }}" style-hover="color:#cdd4e0">{{ analCols.value.label }}</div>
+              <div onClick="{{ analCols.weight.on }}" style="flex:0.9;text-align:right;cursor:pointer;color:{{ analCols.weight.color }}" style-hover="color:#cdd4e0">{{ analCols.weight.label }}</div>
+              <div onClick="{{ analCols.pl.on }}"    style="flex:1.4;text-align:right;cursor:pointer;color:{{ analCols.pl.color }}" style-hover="color:#cdd4e0">{{ analCols.pl.label }}</div>
+              <div style="flex:1.3;text-align:center;color:#4a5568">TREND</div>
+            </div>
+
+            <!-- righe posizioni -->
             <sc-for list="{{ holdings }}" as="h" hint-placeholder-count="8">
-              <div onClick="{{ h.open }}" style="display:flex;align-items:center;padding:13px 22px;border-bottom:1px solid rgba(255,255,255,0.03);font-variant-numeric:tabular-nums;cursor:pointer" style-hover="background:#171d29">
-                <div style="flex:2.2;display:flex;align-items:center;gap:11px"><div style="width:32px;height:32px;border-radius:9px;background:{{ h.color }}22;border:1px solid {{ h.color }}44;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11.5px;color:{{ h.color }};flex:none">{{ h.initials }}</div><div style="min-width:0"><div style="font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ h.name }}</div><div style="font-size:11px;color:#7b8499;white-space:nowrap">{{ h.ticker }} · {{ h.cls }}</div></div></div>
-                <div style="flex:1;text-align:right;font-size:13px">{{ h.qtyFmt }}</div>
-                <div style="flex:1.3;text-align:right;font-size:13px;color:{{ h.avgColor }}">{{ h.avgFmt }}</div>
-                <div style="flex:1.3;text-align:right;font-size:13px;font-weight:500;color:{{ h.priceColor }}">{{ h.priceFmt }}</div>
-                <div style="flex:1.3;text-align:right;font-size:13.5px;font-weight:600">{{ h.valueFmt }}</div>
-                <div style="flex:1;text-align:right;font-size:13px;color:#aeb6c6">{{ h.weightFmt }}</div>
-                <div style="flex:1.3;text-align:right"><div style="font-size:13px;font-weight:700;color:{{ h.plColor }}">{{ h.plPctFmt }}</div><div style="font-size:11px;color:{{ h.plColor }}">{{ h.plFmt }}</div></div>
-                <div style="flex:1.6;display:flex;justify-content:flex-end;padding-left:14px"><svg viewBox="0 0 100 30" preserveAspectRatio="none" style="width:74px;height:26px"><path d="{{ h.spark }}" fill="none" stroke="{{ h.plColor }}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+              <div onClick="{{ h.open }}" style="display:flex;align-items:center;padding:11px 20px;border-bottom:1px solid rgba(255,255,255,0.025);font-variant-numeric:tabular-nums;cursor:pointer;transition:background .1s" style-hover="background:#191f2e">
+
+                <!-- ASSET -->
+                <div style="flex:2.4;display:flex;align-items:center;gap:10px;min-width:0">
+                  <div style="width:30px;height:30px;border-radius:8px;background:{{ h.color }}20;border:1px solid {{ h.color }}40;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:10.5px;color:{{ h.color }};flex:none">{{ h.initials }}</div>
+                  <div style="min-width:0">
+                    <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px">{{ h.name }}</div>
+                    <div style="font-size:10.5px;color:#5a6275;margin-top:1px;white-space:nowrap">{{ h.ticker }} <span style="color:{{ h.color }}80">{{ h.cls }}</span></div>
+                  </div>
+                </div>
+
+                <!-- Q.TÀ -->
+                <div style="flex:0.75;text-align:right;font-size:12.5px;color:#cdd4e0">{{ h.qtyFmt }}</div>
+
+                <!-- P. MEDIO -->
+                <div style="flex:1.25;text-align:right;font-size:12.5px;color:{{ h.avgColor }}">{{ h.avgFmt }}</div>
+
+                <!-- P. ATT. -->
+                <div style="flex:1.25;text-align:right;font-size:12.5px;font-weight:600;color:{{ h.priceColor }}">{{ h.priceFmt }}</div>
+
+                <!-- VALORE -->
+                <div style="flex:1.2;text-align:right;font-size:13px;font-weight:700;color:#E8ECF4">{{ h.valueFmt }}</div>
+
+                <!-- PESO % -->
+                <div style="flex:0.9;text-align:right">
+                  <div style="font-size:12px;color:#aeb6c6">{{ h.weightFmt }}</div>
+                  <div style="margin-top:3px;height:3px;background:#1c2330;border-radius:3px;overflow:hidden"><div style="height:100%;width:{{ h.weight }}%;background:{{ h.color }};border-radius:3px"></div></div>
+                </div>
+
+                <!-- P&L % -->
+                <div style="flex:1.4;text-align:right">
+                  <div style="font-size:12.5px;font-weight:700;color:{{ h.plColor }}">{{ h.plPctFmt }}</div>
+                  <div style="font-size:10.5px;color:{{ h.plColor }};margin-top:1px">{{ h.plFmt }}</div>
+                </div>
+
+                <!-- TREND sparkline -->
+                <div style="flex:1.3;display:flex;justify-content:flex-end;padding-left:10px">
+                  <svg viewBox="0 0 100 30" preserveAspectRatio="none" style="width:68px;height:24px">
+                    <path d="{{ h.spark }}" fill="none" stroke="{{ h.plColor }}80" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+                    <path d="{{ h.spark }}" fill="none" stroke="{{ h.plColor }}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="0"/>
+                  </svg>
+                </div>
               </div>
             </sc-for>
           </div>
-          <div style="width:300px;flex:none;display:flex;flex-direction:column;gap:18px">
-            <div style="background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:20px">
-              <div style="font-size:14px;font-weight:700;margin-bottom:14px">Allocazione</div>
-              <div style="display:flex;justify-content:center;margin-bottom:14px"><div style="position:relative;width:150px;height:150px"><svg width="150" height="150" viewBox="0 0 220 220"><circle cx="110" cy="110" r="86" fill="none" stroke="#1c2330" stroke-width="24"/><sc-for list="{{ donutClass }}" as="s" hint-placeholder-count="5"><circle cx="110" cy="110" r="86" fill="none" stroke="{{ s.color }}" stroke-width="24" stroke-dasharray="{{ s.dash }}" stroke-dashoffset="{{ s.offset }}" transform="rotate(-90 110 110)"/></sc-for></svg><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none"><div style="font-size:11px;color:#7b8499;font-weight:600">TOTALE</div><div style="font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums">{{ kpi.totalValueFmt }}</div><div style="font-size:11px;font-weight:700;color:{{ kpi.plColor }}">{{ kpi.plPctFmt }}</div></div></div></div>
-              <div style="display:flex;flex-direction:column;gap:9px">
-                <sc-for list="{{ classRows }}" as="c" hint-placeholder-count="5"><div onClick="{{ c.on }}" style="display:flex;align-items:center;gap:9px;cursor:pointer;padding:3px 5px;margin:-3px -5px;border-radius:7px" style-hover="background:#1a212e"><span style="width:9px;height:9px;border-radius:3px;background:{{ c.color }}"></span><span style="flex:1;font-size:12.5px;font-weight:600">{{ c.label }}</span><span style="font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums">{{ c.pctFmt }}</span></div></sc-for>
+
+          <!-- ── sidebar destra ── -->
+          <div style="width:280px;flex:none;display:flex;flex-direction:column;gap:16px">
+
+            <!-- donut allocazione -->
+            <div style="background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:18px">
+              <div style="font-size:13px;font-weight:700;margin-bottom:12px">Allocazione</div>
+              <div style="display:flex;justify-content:center;margin-bottom:12px">
+                <div style="position:relative;width:140px;height:140px">
+                  <svg width="140" height="140" viewBox="0 0 220 220">
+                    <circle cx="110" cy="110" r="86" fill="none" stroke="#1c2330" stroke-width="24"/>
+                    <sc-for list="{{ donutClass }}" as="s" hint-placeholder-count="5">
+                      <circle cx="110" cy="110" r="86" fill="none" stroke="{{ s.color }}" stroke-width="24" stroke-dasharray="{{ s.dash }}" stroke-dashoffset="{{ s.offset }}" transform="rotate(-90 110 110)"/>
+                    </sc-for>
+                  </svg>
+                  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+                    <div style="font-size:10px;color:#7b8499;font-weight:600;letter-spacing:.04em">TOTALE</div>
+                    <div style="font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">{{ kpi.totalValueFmt }}</div>
+                    <div style="font-size:10.5px;font-weight:700;color:{{ kpi.plColor }}">{{ kpi.plPctFmt }}</div>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <sc-for list="{{ classRows }}" as="c" hint-placeholder-count="5">
+                  <div onClick="{{ c.on }}" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 6px;margin:-4px -6px;border-radius:7px" style-hover="background:#1a212e">
+                    <span style="width:8px;height:8px;border-radius:2px;background:{{ c.color }};flex:none"></span>
+                    <span style="flex:1;font-size:12px;font-weight:600;color:#cdd4e0">{{ c.label }}</span>
+                    <span style="font-size:11.5px;color:#7b8499;font-variant-numeric:tabular-nums">{{ c.valueFmt }}</span>
+                    <span style="font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;min-width:38px;text-align:right">{{ c.pctFmt }}</span>
+                  </div>
+                </sc-for>
               </div>
             </div>
-            <div style="background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:20px">
-              <div style="font-size:14px;font-weight:700;margin-bottom:12px">Sintesi</div>
-              <div style="display:flex;flex-direction:column;gap:11px">
-                <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#7b8499">Investito</span><span style="font-weight:600;font-variant-numeric:tabular-nums">{{ kpi.investedFmt }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#7b8499">Valore asset</span><span style="font-weight:600;font-variant-numeric:tabular-nums">{{ kpi.assetValueFmt }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#7b8499">P&L totale</span><span style="font-weight:700;color:{{ kpi.plColor }};font-variant-numeric:tabular-nums">{{ kpi.plFmt }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#7b8499">Rendimento</span><span style="font-weight:700;color:{{ kpi.plColor }};font-variant-numeric:tabular-nums">{{ kpi.plPctFmt }}</span></div>
-                <div style="height:1px;background:rgba(255,255,255,0.06)"></div>
-                <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#7b8499">Posizioni</span><span style="font-weight:600">{{ kpi.count }}</span></div>
+
+            <!-- sintesi -->
+            <div style="background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:18px">
+              <div style="font-size:13px;font-weight:700;margin-bottom:12px">Sintesi</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;justify-content:space-between;font-size:12.5px"><span style="color:#7b8499">Investito</span><span style="font-weight:600;font-variant-numeric:tabular-nums">{{ kpi.investedFmt }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12.5px"><span style="color:#7b8499">Valore asset</span><span style="font-weight:600;font-variant-numeric:tabular-nums">{{ kpi.assetValueFmt }}</span></div>
+                <div style="height:1px;background:rgba(255,255,255,0.05)"></div>
+                <div style="display:flex;justify-content:space-between;font-size:12.5px"><span style="color:#7b8499">P&L</span><span style="font-weight:700;color:{{ kpi.plColor }};font-variant-numeric:tabular-nums">{{ kpi.plFmt }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12.5px"><span style="color:#7b8499">Rendimento</span><span style="font-weight:700;color:{{ kpi.plColor }};font-variant-numeric:tabular-nums">{{ kpi.plPctFmt }}</span></div>
+                <div style="height:1px;background:rgba(255,255,255,0.05)"></div>
+                <div style="display:flex;justify-content:space-between;font-size:12.5px"><span style="color:#7b8499">Posizioni</span><span style="font-weight:600">{{ kpi.count }}</span></div>
               </div>
-              <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);font-size:11px;color:#5a6275;line-height:1.5">
-                <span style="color:#22D3EE;font-weight:700">·</span> Prezzi live via Yahoo Finance<br/>
-                <span style="color:#5a6275;font-weight:700">~</span> prezzo stimato (no feed live)
+              <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.04);font-size:10.5px;color:#3d4656;line-height:1.6">
+                <span style="color:#22D3EE">●</span> live · <span style="color:#5a6275">~</span> stimato (bond: % del par)
               </div>
             </div>
           </div>
@@ -704,6 +786,7 @@ class Component extends DCLogic {
 
   state = {
     view: 'dashboard', layout: 'overview', range: 'YTD', allocBy: 'asset',
+    analSort: 'value', analDir: -1, analFilter: 'Tutti',
     showAdd: false, txFilter: 'Tutti', search: '',
     custom: {}, expandedTx: null, fiscalYear: null, selAsset: null, selClass: null,
     form: {
@@ -1144,7 +1227,27 @@ class Component extends DCLogic {
     const dayPct = (totalValue - dayPl) > 0 ? dayPl / (totalValue - dayPl) * 100 : 0;
 
     const _pctPar = v => v.toFixed(2).replace('.', ',') + '%';
-    const holdings = hs.map(h => ({
+
+    // filtro classe + ordinamento per Analitica
+    const _filterHs = S.analFilter && S.analFilter !== 'Tutti'
+      ? hs.filter(h => h.cls === S.analFilter)
+      : hs;
+    const _SORT_FN = {
+      name:  h => h.name.toLowerCase(),
+      qty:   h => h.qty,
+      avg:   h => h.avg,
+      price: h => h.price,
+      value: h => h.value,
+      pl:    h => h.plPct,
+    };
+    const _sf  = _SORT_FN[S.analSort || 'value'] || (h => h.value);
+    const _dir = S.analDir ?? -1;
+    const displayHs = [..._filterHs].sort((a, b) => {
+      const ka = _sf(a), kb = _sf(b);
+      return ka === kb ? 0 : (ka > kb ? 1 : -1) * _dir;
+    });
+
+    const holdings = displayHs.map(h => ({
       ticker: h.ticker, name: h.name, cls: h.cls, color: h.color, initials: this.ini(h.ticker),
       isBond:    h.cls === 'Obbligazioni',
       qtyFmt:    this.num(h.qty),
@@ -1509,6 +1612,26 @@ class Component extends DCLogic {
       submitAdd: this.submitAdd, showAdd: S.showAdd,
       // tab
       rangeTabs, layoutTabs, allocTabs, txFilters, brokerFilters, rangeLabel: S.range,
+      // Analitica sort + filter
+      analFilterTabs: ['Tutti', ...new Set(hs.map(h => h.cls))].map(k => ({
+        label: k, on: () => this.setS({ analFilter: k }),
+        bg: k === S.analFilter ? '#22D3EE' : '#10151f',
+        fg: k === S.analFilter ? '#062028' : '#8A93A6',
+      })),
+      analCols: (() => {
+        const _on  = col => () => this.setState(s => ({ analSort: col, analDir: s.analSort === col ? -s.analDir : -1 }));
+        const _ico = col => col === S.analSort ? (S.analDir < 0 ? ' ▼' : ' ▲') : '';
+        const _cl  = col => col === S.analSort ? '#22D3EE' : '#7b8499';
+        return {
+          name:   { label: 'ASSET'     + _ico('name'),   on: _on('name'),   color: _cl('name')   },
+          qty:    { label: 'Q.TÀ'      + _ico('qty'),    on: _on('qty'),    color: _cl('qty')    },
+          avg:    { label: 'P. MEDIO'  + _ico('avg'),    on: _on('avg'),    color: _cl('avg')    },
+          price:  { label: 'P. ATT.'   + _ico('price'),  on: _on('price'),  color: _cl('price')  },
+          value:  { label: 'VALORE'    + _ico('value'),  on: _on('value'),  color: _cl('value')  },
+          weight: { label: 'PESO %'    + _ico('value'),  on: _on('value'),  color: _cl('value')  },
+          pl:     { label: 'P&L %'     + _ico('pl'),     on: _on('pl'),     color: _cl('pl')     },
+        };
+      })(),
       refreshPrices:  () => this._refreshPrices(),
       pricesLoading:  S.pricesLoading,
       pricesTsFmt:    S.pricesLoading ? 'Aggiornamento…' : (S.pricesTs ? 'Aggiornato ' + S.pricesTs : 'Aggiorna prezzi'),
