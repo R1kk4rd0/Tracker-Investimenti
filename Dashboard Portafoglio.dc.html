@@ -97,7 +97,7 @@
       <div style="display:flex;flex-direction:column;gap:2px;min-width:150px">
         <div style="font-size:17px;font-weight:700;letter-spacing:-.01em">{{ pageTitle }}</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#7b8499">
-          <span style="width:6px;height:6px;border-radius:50%;background:#3FD68C;animation:pulse 1.8s infinite"></span>Mercati live · agg. 18 giu 15:42
+          <span style="width:6px;height:6px;border-radius:50%;background:{{ pricesDotColor }};animation:pulse 1.8s infinite"></span>{{ pricesStatusFmt }}
         </div>
       </div>
       <div style="flex:1;max-width:340px;display:flex;align-items:center;gap:9px;background:#141a26;border:1px solid rgba(255,255,255,0.06);border-radius:11px;padding:9px 13px">
@@ -1487,7 +1487,11 @@ class Component extends DCLogic {
       refreshPrices:  () => this._refreshPrices(),
       pricesLoading:  S.pricesLoading,
       pricesTsFmt:    S.pricesLoading ? 'Aggiornamento…' : (S.pricesTs ? 'Aggiornato ' + S.pricesTs : 'Aggiorna prezzi'),
-      pricesBtnColor: S.pricesTs && !S.pricesLoading ? '#22D3EE' : '#5a6275',
+      pricesBtnColor:   S.pricesTs && !S.pricesLoading ? '#22D3EE' : '#5a6275',
+      pricesStatusFmt:  S.pricesTs
+        ? ('Mercati live · agg. ' + S.pricesTs)
+        : (S.pricesLoading ? 'Caricamento prezzi…' : 'Prezzi offline'),
+      pricesDotColor:   S.pricesTs || S.pricesLoading ? '#3FD68C' : '#5a6275',
       // portafoglio
       kpi, holdings, classRows, donut, donutClass, legend, top, flop, history,
       // drill-down
