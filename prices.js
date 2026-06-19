@@ -34,12 +34,64 @@ const _YF = {
   // BTP e obbligazioni governative: non disponibili su Yahoo → omessi
 };
 
+const _PROXY_URLS = [
+  (u) => u,
+  (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+];
+
+function _extractJsonText(text) {
+  const t = String(text || '');
+  if (!t) return '';
+
+  const firstBrace = t.indexOf('{');
+  const firstBracket = t.indexOf('[');
+  const first = firstBrace >= 0 && (firstBracket < 0 || firstBrace < firstBracket) ? firstBrace : firstBracket;
+  if (first === -1) return '';
+
+  const open = t[first];
+  let depth = 0;
+  for (let i = first; i < t.length; i++) {
+    if (t[i] === open) depth++;
+    else if (t[i] === (open === '{' ? '}' : ']')) depth--;
+    if (depth === 0 && i > first) {
+      return t.slice(first, i + 1);
+    }
+  }
+
+  return t.slice(first);
+}
+
+async function _fetchJson(url) {
+  for (const toUrl of _PROXY_URLS) {
+    try {
+      const candidate = toUrl(url);
+      const r = await fetch(candidate, { headers: { Accept: 'application/json' } });
+      const text = await r.text();
+      if (!r.ok || !text) {
+        console.log('[prices] fetch failed', { candidate, ok: r.ok, status: r.status });
+        continue;
+      }
+      const jsonText = _extractJsonText(text);
+      if (!jsonText) {
+        console.log('[prices] no json payload', { candidate, preview: String(text).slice(0, 200) });
+        continue;
+      }
+      const parsed = JSON.parse(jsonText);
+      console.log('[prices] success', { candidate, parsed: !!parsed?.chart });
+      return parsed;
+    } catch (e) {
+      console.log('[prices] exception', { candidate, error: String(e) });
+    }
+  }
+  return null;
+}
+
 async function _fetchOne(yfSym) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yfSym)}?range=1d&interval=1d&includePrePost=false`;
   try {
-    const r = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!r.ok) return null;
-    const d = await r.json();
+    const d = await _fetchJson(url);
     const meta = d?.chart?.result?.[0]?.meta;
     if (!meta?.regularMarketPrice) return null;
     const price = meta.regularMarketPrice;
@@ -51,9 +103,15 @@ async function _fetchOne(yfSym) {
 // Restituisce { USD: 0.924, GBP: 1.163, CHF: 1.072, ... } — quanti EUR vale 1 unità di valuta estera
 async function _fetchFxToEur() {
   try {
-    const r = await fetch('https://api.frankfurter.app/latest?from=EUR', { headers: { Accept: 'application/json' } });
-    if (!r.ok) return {};
-    const d = await r.json();
+    // open.er-api.com ha CORS nativo (no proxy needed); Frankfurter come fallback
+    const d = await (async () => {
+      try {
+        const r = await fetch('https://open.er-api.com/v6/latest/EUR', { headers: { Accept: 'application/json' } });
+        if (r.ok) { const j = await r.json(); if (j?.rates) return j; }
+      } catch {}
+      return _fetchJson('https://api.frankfurter.app/latest?from=EUR');
+    })();
+    if (!d?.rates) return {};
     // d.rates = { USD: 1.081, GBP: 0.859, CHF: 0.933, ... } — 1 EUR = X unità
     // Invertiamo: 1 unità = (1/X) EUR
     const toEur = { EUR: 1 };
