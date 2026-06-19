@@ -687,10 +687,52 @@
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+        <!-- ── Cerca strumento per ticker o ISIN ── -->
         <div style="grid-column:1 / -1">
-          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Asset / Ticker</label>
-          <input list="tk" value="{{ form.ticker }}" onInput="{{ f.ticker }}" placeholder="es. NVDA, BTC, IWDA…" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px;text-transform:uppercase"/>
-          <datalist id="tk"><sc-for list="{{ tickerOptions }}" as="o" hint-placeholder-count="8"><option value="{{ o.ticker }}">{{ o.name }}</option></sc-for></datalist>
+          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Ticker o ISIN</label>
+          <div style="display:flex;gap:8px">
+            <input list="tk" value="{{ form.ticker }}" onInput="{{ f.ticker }}" placeholder="es. XDEM, AAPL, IE00B4L5Y983…" style="flex:1;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px;text-transform:uppercase"/>
+            <datalist id="tk"><sc-for list="{{ tickerOptions }}" as="o" hint-placeholder-count="8"><option value="{{ o.ticker }}">{{ o.name }}</option></sc-for></datalist>
+            <div onClick="{{ f.lookup }}" style="display:flex;align-items:center;gap:7px;padding:0 16px;border-radius:10px;background:#1a2744;border:1px solid rgba(34,211,238,0.3);color:#22D3EE;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex:none" style-hover="background:#1e2f50">
+              <sc-if value="{{ lookupLoading }}" hint-placeholder-val="{{ false }}">
+                <div style="width:13px;height:13px;border-radius:50%;border:2px solid #22D3EE;border-top-color:transparent;animation:spin 0.75s linear infinite"></div>
+              </sc-if>
+              <sc-if value="{{ !lookupLoading }}" hint-placeholder-val="{{ true }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#22D3EE" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="#22D3EE" stroke-width="2" stroke-linecap="round"/></svg>
+              </sc-if>
+              Cerca
+            </div>
+          </div>
+
+          <!-- risultato lookup -->
+          <sc-if value="{{ lookupResult }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:9px;background:#0c1824;border:1px solid rgba(34,211,238,0.3);border-radius:11px;padding:12px 14px;display:flex;align-items:center;gap:14px">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ lookupResult.name }}</div>
+                <div style="font-size:11.5px;color:#7b8499;margin-top:3px">
+                  <span style="color:#22D3EE;font-weight:700">{{ lookupResult.symbol }}</span>
+                  · {{ lookupResult.cls }} · {{ lookupResult.currency }}
+                </div>
+                <sc-if value="{{ lookupResult.hasIsin }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:10.5px;color:#4a5568;margin-top:2px">ISIN {{ lookupResult.isin }}</div>
+                </sc-if>
+              </div>
+              <div style="text-align:right;flex:none">
+                <div style="font-size:14px;font-weight:700;font-variant-numeric:tabular-nums">{{ lookupResult.priceEurFmt }}</div>
+                <div style="font-size:11px;color:{{ lookupResult.dayColor }};margin-top:2px">{{ lookupResult.dayFmt }}</div>
+                <div onClick="{{ f.applyLookup }}" style="margin-top:8px;padding:6px 13px;border-radius:7px;background:#22D3EE;color:#062028;font-size:12px;font-weight:700;cursor:pointer" style-hover="opacity:0.85">Usa questo →</div>
+              </div>
+              <div onClick="{{ f.dismissLookup }}" style="cursor:pointer;color:#4a5568;font-size:20px;line-height:1;padding:4px;flex:none" style-hover="color:#7b8499">×</div>
+            </div>
+          </sc-if>
+
+          <!-- errore lookup -->
+          <sc-if value="{{ lookupError }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:7px;padding:9px 13px;background:rgba(242,89,107,0.1);border:1px solid rgba(242,89,107,0.25);border-radius:9px;font-size:12px;color:#F2596B">
+              Nessuno strumento trovato. Verifica il ticker o l'ISIN e riprova.
+            </div>
+          </sc-if>
         </div>
         <div>
           <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Nome</label>
@@ -806,6 +848,8 @@ class Component extends DCLogic {
     editTxId: null, txBrokerFilter: 'Tutti',
     // prezzi live
     livePrices: {}, pricesLoading: false, pricesTs: null,
+    // lookup strumento
+    lookupLoading: false, lookupResult: null,
   };
 
   // ── Formatters ─────────────────────────────────────────────────────────────
@@ -998,6 +1042,37 @@ class Component extends DCLogic {
     const lp = await window.PRICES.fetchLivePrices(list);
     const ts = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
     this.setState({ livePrices: lp, pricesLoading: false, pricesTs: ts });
+  };
+
+  // ── Instrument lookup (ticker o ISIN → Yahoo Finance via Edge Function) ──────
+
+  _lookupInstrument = async () => {
+    const q = (this.state.form.ticker || '').trim();
+    if (q.length < 2) return;
+    this.setState({ lookupLoading: true, lookupResult: null });
+    const result = await window.PRICES?.searchInstrument(q);
+    this.setState({ lookupLoading: false, lookupResult: result || { error: true } });
+  };
+
+  _applyLookup = () => {
+    const r = this.state.lookupResult;
+    if (!r || r.error) return;
+    // Il ticker utente è il simbolo Yahoo senza suffisso borsa (.DE/.AS/.PA/.L ecc.)
+    const tk = (r.symbol || '').replace(/\.(DE|AS|PA|L|SW|MI|OL|ST|CO|HE|BR|VI|MC|LS|WA|PR|BU)$/i, '') || this.state.form.ticker;
+    // Registra il simbolo Yahoo per i prezzi live
+    if (window.PRICES?.registerTicker) window.PRICES.registerTicker(tk.toUpperCase(), r.symbol);
+    this.setState(s => ({
+      lookupResult: null,
+      form: {
+        ...s.form,
+        ticker: tk.toUpperCase(),
+        name:   r.name  || s.form.name,
+        cls:    r.cls   || s.form.cls,
+        isin:   r.isin  || s.form.isin,
+        mkt:    r.priceEur ? String(r.priceEur.toFixed(4)) : s.form.mkt,
+        aliquota: (r.cls === 'Obbligazioni') ? '12.5' : '26',
+      },
+    }));
   };
 
   // ── Edit transaction ──────────────────────────────────────────────────────
@@ -1582,12 +1657,30 @@ class Component extends DCLogic {
       price:      (e) => this.setForm('price',    e.target.value),
       fees:       (e) => this.setForm('fees',     e.target.value),
       broker:     (e) => this.setForm('broker',   e.target.value),
-      isin:       (e) => this.setForm('isin',     e.target.value),
-      mkt:        (e) => this.setForm('mkt',      e.target.value),
-      note:       (e) => this.setForm('note',     e.target.value),
-      setRate125: () => this.setForm('aliquota', '12.5'),
-      setRate26:  () => this.setForm('aliquota', '26'),
+      isin:        (e) => { this.setForm('isin', e.target.value); },
+      mkt:         (e) => this.setForm('mkt',      e.target.value),
+      note:        (e) => this.setForm('note',     e.target.value),
+      setRate125:  () => this.setForm('aliquota', '12.5'),
+      setRate26:   () => this.setForm('aliquota', '26'),
+      lookup:      this._lookupInstrument,
+      applyLookup: this._applyLookup,
+      dismissLookup: () => this.setState({ lookupResult: null }),
     };
+
+    // lookup strumento — prepara il risultato formattato per il template
+    const _lr = S.lookupResult;
+    const lookupResult = _lr && !_lr.error ? {
+      symbol:      _lr.symbol,
+      name:        _lr.name,
+      cls:         _lr.cls,
+      currency:    _lr.currency,
+      isin:        _lr.isin || '',
+      hasIsin:     !!_lr.isin,
+      priceEurFmt: _lr.priceEur ? this.eur(_lr.priceEur) : (this.eur(_lr.price || 0) + ' ' + (_lr.currency || '')),
+      dayFmt:      _lr.day ? ((_lr.day >= 0 ? '+' : '') + _lr.day.toFixed(2).replace('.', ',') + '%') : '',
+      dayColor:    (_lr.day || 0) >= 0 ? '#3FD68C' : '#F2596B',
+    } : null;
+    const lookupError = _lr?.error ? true : false;
 
     return {
       // navigazione
@@ -1640,6 +1733,10 @@ class Component extends DCLogic {
         ? ('Mercati live · agg. ' + S.pricesTs)
         : (S.pricesLoading ? 'Caricamento prezzi…' : 'Prezzi offline'),
       pricesDotColor:   S.pricesTs || S.pricesLoading ? '#3FD68C' : '#5a6275',
+      // lookup strumento
+      lookupLoading: S.lookupLoading,
+      lookupResult,
+      lookupError,
       // portafoglio
       kpi, holdings, classRows, donut, donutClass, legend, top, flop, history,
       // drill-down

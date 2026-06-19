@@ -81,4 +81,32 @@ async function fetchLivePrices(tickers) {
   return out;
 }
 
-window.PRICES = { fetchLivePrices, registerTicker };
+// Ricerca strumento per ticker o ISIN tramite Edge Function → Yahoo Finance search
+async function searchInstrument(query) {
+  query = (query || '').trim().toUpperCase();
+  if (!query) return null;
+  try {
+    const r = await fetch(_EDGE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${_ANON_KEY}`,
+        'apikey':        _ANON_KEY,
+      },
+      body: JSON.stringify({ action: 'search', query }),
+    });
+    const d = await r.json();
+    if (d.error || !d.symbol) return null;
+    // converte il prezzo in EUR se necessario
+    if (d.currency && d.currency !== 'EUR' && d.price) {
+      const fx = await _fetchFxToEur();
+      const rate = fx[d.currency === 'GBp' ? 'GBp' : d.currency];
+      if (rate) d.priceEur = d.price * rate;
+    } else {
+      d.priceEur = d.price;
+    }
+    return d;
+  } catch { return null; }
+}
+
+window.PRICES = { fetchLivePrices, registerTicker, searchInstrument };
