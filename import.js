@@ -84,9 +84,22 @@ function parseDegiroCSV(text) {
     const name  = c[2].trim();
     const cls   = _detectClass(name);
     const qty   = Math.abs(rawQty);
-    // Per obbligazioni il prezzo DEGIRO è in % del nominale (es. 44.00 = 44%).
-    // Lo memorizziamo così com'è; il controvalore reale è qty × price / 100.
-    const price = Math.abs(_itNum(c[7]));
+    // c[7]  = prezzo nella valuta locale dell'asset (USD per azioni USA, EUR per EU, % per bond)
+    // c[9]  = valuta locale (es. "USD", "EUR")
+    // c[10] = valore totale in EUR già convertito da DeGiro al tasso del giorno
+    // Per obbligazioni: price è % del nominale → lo teniamo così (controvalore = qty × price / 100)
+    // Per asset in USD/GBP/CHF: usiamo c[10]/qty per ottenere il prezzo in EUR
+    const rawPrice     = Math.abs(_itNum(c[7]));
+    const localCur     = (c[9] || '').trim().toUpperCase();
+    const valoreEur    = Math.abs(_itNum(c[10]));
+    let price;
+    if (cls === 'Obbligazioni') {
+      price = rawPrice;  // % nominale, invariata
+    } else if (localCur && localCur !== 'EUR' && valoreEur > 0 && qty > 0) {
+      price = valoreEur / qty;  // EUR price = EUR value / qty
+    } else {
+      price = rawPrice;  // già in EUR
+    }
     const controvalore = cls === 'Obbligazioni' ? qty * price / 100 : qty * price;
     rows.push({
       _sel: true,
