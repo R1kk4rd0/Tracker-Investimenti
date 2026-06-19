@@ -9,14 +9,14 @@ const _YF = {
   'IUSQ': 'IUSQ.AS', 'IEEM': 'IEEM.AS', 'IQQW': 'IQQW.AS',
   'VWRL': 'VWRL.AS', 'INRG': 'INRG.AS', 'IBCI': 'IBCI.AS',
   // iShares ETF — Xetra (EUR)
-  'IQQQ': 'IQQQ.DE',
+  'IQQQ': 'IQQQ.DE', 'XDEM': 'XDEM.DE', 'EMIM': 'EMIM.L',
   // Xtrackers ETF — Xetra (EUR)
   'XMMO': 'XMMO.DE', 'XEON': 'XEON.DE', 'XDWD': 'XDWD.DE',
   'DBXD': 'DBXD.DE', 'DBXJ': 'DBXJ.DE',
   // Vanguard ETF — Amsterdam (EUR)
-  'VEUR': 'VEUR.AS', 'VFEM': 'VFEM.AS',
-  // Amundi ETF
-  'AMEA': 'AMEA.DE', 'CW8': 'CW8.PA',
+  'VEUR': 'VEUR.AS', 'VFEM': 'VFEM.AS', 'VDEA': 'VDEA.L',
+  // Amundi / Lyxor ETF
+  'AMEA': 'AMEA.DE', 'CW8': 'CW8.PA', 'LYXD': 'LYXD.PA', 'CBU7': 'CBU7.DE',
   // Azioni US (USD — verranno convertiti in EUR)
   'NVDA': 'NVDA',   'AAPL': 'AAPL',   'GOOG': 'GOOG',   'GOOGL': 'GOOGL',
   'MSFT': 'MSFT',   'IBM':  'IBM',    'PYPL': 'PYPL',   'STLA': 'STLA',
