@@ -83,7 +83,7 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 4l2.3 4.7 5.2.8-3.8 3.7.9 5.2L12 16.6 7.4 18.4l.9-5.2L4.5 9.5l5.2-.8z" stroke="#6b7488" stroke-width="1.7" stroke-linejoin="round"/></svg>
     </div>
     <div style="flex:1"></div>
-    <div title="Impostazioni" style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:default;opacity:.55">
+    <div onClick="{{ openPricePanel }}" title="Prezzi manuali" style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s" style-hover="background:#1a212e">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="#6b7488" stroke-width="1.8"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4" stroke="#6b7488" stroke-width="1.8" stroke-linecap="round"/></svg>
     </div>
     <div onClick="{{ doLogout }}" title="{{ userEmail }}" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#5B9DF9,#A78BFA);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#0A0D14;margin-top:4px;cursor:pointer" title="Esci ({{ userEmail }})">{{ userInitials }}</div>
@@ -672,6 +672,85 @@
   </div>
   </sc-if>
 
+  <!-- ============ MODALE PREZZI MANUALI ============ -->
+  <sc-if value="{{ showPricePanel }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closePricePanel }}" style="position:fixed;inset:0;background:rgba(5,7,12,0.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:55;animation:fadein .2s">
+    <div onClick="{{ stopPricePanel }}" style="width:560px;max-height:88vh;overflow-y:auto;background:#11161f;border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:26px;box-shadow:0 30px 80px rgba(0,0,0,0.5)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <div style="font-size:18px;font-weight:700">Prezzi manuali</div>
+          <div style="font-size:12.5px;color:#7b8499;margin-top:2px">Aggiorna prezzi di asset senza feed automatico (bond, ETC esotici…)</div>
+        </div>
+        <div onClick="{{ closePricePanel }}" style="width:34px;height:34px;border-radius:10px;background:#1a212e;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#aeb6c6" stroke-width="2" stroke-linecap="round"/></svg></div>
+      </div>
+
+      <!-- lista asset esistenti -->
+      <sc-if value="{{ customAssetsList.length }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-bottom:18px;border:1px solid rgba(255,255,255,0.06);border-radius:13px;overflow:hidden">
+        <div style="display:flex;padding:9px 14px;font-size:11px;color:#5a6275;font-weight:700;letter-spacing:.04em;background:#0d121b;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <div style="flex:0 0 72px">TICKER</div>
+          <div style="flex:1">NOME</div>
+          <div style="flex:0 0 80px">CLASSE</div>
+          <div style="flex:0 0 90px;text-align:right">PREZZO</div>
+          <div style="width:64px"></div>
+        </div>
+        <sc-for list="{{ customAssetsList }}" as="ca" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04)">
+            <div style="flex:0 0 72px;font-size:13px;font-weight:700;color:#E8ECF4">{{ ca.ticker }}</div>
+            <div style="flex:1;font-size:12.5px;color:#aeb6c6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px">{{ ca.name }}</div>
+            <div style="flex:0 0 80px"><span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px;background:rgba(255,255,255,0.06);color:{{ ca.clsColor }}">{{ ca.cls }}</span></div>
+            <div style="flex:0 0 90px;text-align:right;font-size:13px;font-weight:600;color:#E8ECF4;font-variant-numeric:tabular-nums">{{ ca.price }}</div>
+            <div style="width:64px;display:flex;gap:6px;justify-content:flex-end">
+              <div onClick="{{ ca.onEdit }}" style="width:28px;height:28px;border-radius:7px;background:#1a212e;display:flex;align-items:center;justify-content:center;cursor:pointer" title="Modifica">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4z" stroke="#8A93A6" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 6l4 4" stroke="#8A93A6" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </div>
+              <div onClick="{{ ca.onDelete }}" style="width:28px;height:28px;border-radius:7px;background:rgba(242,89,107,0.1);display:flex;align-items:center;justify-content:center;cursor:pointer" title="Elimina">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="#F2596B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <!-- form aggiunta / modifica -->
+      <div style="background:#0d121b;border:1px solid rgba(255,255,255,0.07);border-radius:13px;padding:18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="font-size:13px;font-weight:600;color:#E8ECF4">{{ priceFormEditing ? 'Modifica prezzo' : 'Aggiungi / aggiorna prezzo' }}</div>
+          <sc-if value="{{ priceFormEditing }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ priceForm.newEdit }}" style="font-size:11.5px;color:#22D3EE;cursor:pointer">+ Nuovo</div>
+          </sc-if>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label style="font-size:11.5px;color:#8A93A6;font-weight:600;display:block;margin-bottom:5px">Ticker *</label>
+            <input value="{{ priceForm.ticker }}" onInput="{{ priceForm.onTicker }}" placeholder="es. OEAT" style="width:100%;background:#11161f;border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:9px 11px;color:#E8ECF4;font-size:13px;font-weight:700;text-transform:uppercase;font-family:inherit;outline:none;box-sizing:border-box"/>
+          </div>
+          <div>
+            <label style="font-size:11.5px;color:#8A93A6;font-weight:600;display:block;margin-bottom:5px">Prezzo *</label>
+            <input value="{{ priceForm.price }}" onInput="{{ priceForm.onPrice }}" placeholder="es. 30.50 (bond: % del par)" style="width:100%;background:#11161f;border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:9px 11px;color:#E8ECF4;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"/>
+          </div>
+          <div>
+            <label style="font-size:11.5px;color:#8A93A6;font-weight:600;display:block;margin-bottom:5px">Nome</label>
+            <input value="{{ priceForm.name }}" onInput="{{ priceForm.onName }}" placeholder="es. Austria 2120 MTN" style="width:100%;background:#11161f;border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:9px 11px;color:#E8ECF4;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"/>
+          </div>
+          <div>
+            <label style="font-size:11.5px;color:#8A93A6;font-weight:600;display:block;margin-bottom:5px">Classe</label>
+            <select value="{{ priceForm.cls }}" onChange="{{ priceForm.onCls }}" style="width:100%;background:#11161f;border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:9px 11px;color:#E8ECF4;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box">
+              <option>ETF</option><option>Azioni</option><option>Obbligazioni</option><option>Criptovalute</option><option>Materie prime</option><option>Liquidità</option>
+            </select>
+          </div>
+          <div style="grid-column:1 / -1">
+            <label style="font-size:11.5px;color:#8A93A6;font-weight:600;display:block;margin-bottom:5px">ISIN (opzionale)</label>
+            <input value="{{ priceForm.isin }}" onInput="{{ priceForm.onIsin }}" placeholder="es. AT0000A2HLC4" style="width:100%;background:#11161f;border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:9px 11px;color:#E8ECF4;font-size:13px;text-transform:uppercase;font-family:inherit;outline:none;box-sizing:border-box"/>
+          </div>
+        </div>
+        <div onClick="{{ priceForm.onSave }}" style="margin-top:14px;text-align:center;padding:12px;border-radius:11px;background:#22D3EE;color:#062028;font-weight:700;font-size:14px;cursor:pointer">Salva prezzo</div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
   <!-- ============ MODALE ============ -->
   <sc-if value="{{ showAdd }}" hint-placeholder-val="{{ false }}">
   <div onClick="{{ closeAdd }}" style="position:fixed;inset:0;background:rgba(5,7,12,0.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:50;animation:fadein .2s">
@@ -850,6 +929,10 @@ class Component extends DCLogic {
     livePrices: {}, pricesLoading: false, pricesTs: null,
     // lookup strumento
     lookupLoading: false, lookupResult: null,
+    // pannello prezzi manuali
+    showPricePanel: false,
+    priceForm: { ticker: '', name: '', cls: 'Materie prime', price: '', isin: '' },
+    priceFormEditing: false,
   };
 
   // ── Formatters ─────────────────────────────────────────────────────────────
@@ -1073,6 +1156,40 @@ class Component extends DCLogic {
         aliquota: (r.cls === 'Obbligazioni') ? '12.5' : '26',
       },
     }));
+  };
+
+  // ── Prezzi manuali (custom_assets) ────────────────────────────────────────
+
+  _openPriceEdit = (ticker) => {
+    const c = this.state.custom[ticker];
+    this.setState({
+      showPricePanel: true,
+      priceFormEditing: true,
+      priceForm: { ticker, name: c?.name || '', cls: c?.cls || 'Materie prime', price: String(c?.price || ''), isin: c?.isin || '' },
+    });
+  };
+
+  _saveCustomPrice = async () => {
+    const { priceForm, user } = this.state;
+    const tk = priceForm.ticker.trim().toUpperCase();
+    const price = Number(String(priceForm.price).replace(',', '.'));
+    if (!tk || !price) return;
+    const asset = { name: priceForm.name || tk, cls: priceForm.cls, price, day: 0, isin: priceForm.isin || '' };
+    await window._sb.from('custom_assets').upsert([{ user_id: user.id, ticker: tk, ...asset }]);
+    this.setState(s => ({
+      custom: { ...s.custom, [tk]: asset },
+      priceForm: { ticker: '', name: '', cls: 'Materie prime', price: '', isin: '' },
+      priceFormEditing: false,
+    }));
+  };
+
+  _deleteCustomPrice = async (ticker) => {
+    await window._sb.from('custom_assets').delete().eq('user_id', this.state.user.id).eq('ticker', ticker);
+    this.setState(s => {
+      const custom = { ...s.custom };
+      delete custom[ticker];
+      return { custom };
+    });
   };
 
   // ── Edit transaction ──────────────────────────────────────────────────────
@@ -1792,6 +1909,33 @@ class Component extends DCLogic {
       doLogout:      this.doLogout,
       userEmail:     S.user?.email || '',
       userInitials:  (S.user?.email || '??').slice(0, 2).toUpperCase(),
+      // pannello prezzi manuali
+      showPricePanel:    S.showPricePanel,
+      openPricePanel:    () => this.setState({ showPricePanel: true, priceFormEditing: false, priceForm: { ticker: '', name: '', cls: 'Materie prime', price: '', isin: '' } }),
+      closePricePanel:   () => this.setState({ showPricePanel: false }),
+      stopPricePanel:    (e) => e.stopPropagation(),
+      customAssetsList:  Object.entries(S.custom).map(([tk, c]) => ({
+        ticker: tk, name: c.name, cls: c.cls,
+        price: c.cls === 'Obbligazioni' ? c.price.toFixed(2).replace('.', ',') + '%' : this.eur(c.price),
+        clsColor: this.CLS[c.cls] || '#5A6678',
+        onEdit:   () => this._openPriceEdit(tk),
+        onDelete: () => this._deleteCustomPrice(tk),
+      })),
+      priceFormEditing:  S.priceFormEditing,
+      priceForm: {
+        ticker:   S.priceForm.ticker,
+        name:     S.priceForm.name,
+        cls:      S.priceForm.cls,
+        price:    S.priceForm.price,
+        isin:     S.priceForm.isin,
+        onTicker: (e) => this.setState(s => ({ priceForm: { ...s.priceForm, ticker: e.target.value.toUpperCase() } })),
+        onName:   (e) => this.setState(s => ({ priceForm: { ...s.priceForm, name: e.target.value } })),
+        onCls:    (e) => this.setState(s => ({ priceForm: { ...s.priceForm, cls: e.target.value } })),
+        onPrice:  (e) => this.setState(s => ({ priceForm: { ...s.priceForm, price: e.target.value } })),
+        onIsin:   (e) => this.setState(s => ({ priceForm: { ...s.priceForm, isin: e.target.value.toUpperCase() } })),
+        onSave:   this._saveCustomPrice,
+        newEdit:  () => this.setState({ priceFormEditing: false, priceForm: { ticker: '', name: '', cls: 'Materie prime', price: '', isin: '' } }),
+      },
     };
   }
 }
