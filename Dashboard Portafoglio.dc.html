@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="./support.js"></script>
-<script src="./market-data.js"></script>
-<script src="./transactions.js"></script>
+<script src="./support.js?v=20260619"></script>
+<script src="./market-data.js?v=20260619"></script>
+<script src="./transactions.js?v=20260619"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./config.js"></script>
-<script src="./import.js"></script>
-<script src="./prices.js"></script>
+<script src="./config.js?v=20260619"></script>
+<script src="./import.js?v=20260619"></script>
+<script src="./prices.js?v=20260619"></script>
 </head>
 <body>
 <x-dc>
@@ -229,7 +229,7 @@
           <div style="background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:22px">
             <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:8px">
               <div>
-                <div style="font-size:15px;font-weight:700">Andamento patrimonio</div>
+                <div style="display:flex;align-items:center;gap:8px"><div style="font-size:15px;font-weight:700">Andamento patrimonio</div><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:rgba(90,102,120,0.3);color:#7b8499;letter-spacing:.04em">SIMULATO</span></div>
                 <div style="font-size:12.5px;color:#7b8499;margin-top:2px">Periodo {{ rangeLabel }} · rendimento <span style="color:{{ history.retColor }};font-weight:700">{{ history.retFmt }}</span></div>
               </div>
               <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:600;font-variant-numeric:tabular-nums">{{ kpi.totalValueFmt }}</div>
@@ -278,7 +278,7 @@
           <div style="background:linear-gradient(135deg,#121a26,#0f1420);border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:26px;position:relative;overflow:hidden">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:2">
               <div>
-                <div style="font-size:13px;color:#8A93A6;font-weight:600;letter-spacing:.03em">PATRIMONIO TOTALE · {{ rangeLabel }}</div>
+                <div style="display:flex;align-items:center;gap:8px"><div style="font-size:13px;color:#8A93A6;font-weight:600;letter-spacing:.03em">PATRIMONIO TOTALE · {{ rangeLabel }}</div><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:rgba(90,102,120,0.25);color:#5a6275;letter-spacing:.04em">CURVA SIMULATA</span></div>
                 <div style="font-family:'Space Grotesk',sans-serif;font-size:46px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:6px">{{ kpi.totalValueFmt }}</div>
                 <div style="display:flex;gap:10px;margin-top:8px"><span style="color:{{ history.retColor }};font-weight:700;font-size:15px">{{ history.retFmt }}</span><span style="color:{{ kpi.plColor }};font-size:15px;font-weight:600">{{ kpi.plFmt }}</span></div>
               </div>
@@ -328,14 +328,14 @@
           <div style="flex:1;background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;overflow:hidden">
             <div style="padding:18px 22px;font-size:15px;font-weight:700;border-bottom:1px solid rgba(255,255,255,0.05)">Posizioni · dettaglio</div>
             <div style="display:flex;padding:11px 22px;font-size:11px;color:#7b8499;font-weight:700;letter-spacing:.03em;border-bottom:1px solid rgba(255,255,255,0.05)">
-              <div style="flex:2.2">ASSET</div><div style="flex:1;text-align:right">Q.TÀ</div><div style="flex:1.3;text-align:right">P. MEDIO</div><div style="flex:1.3;text-align:right">P. ATTUALE</div><div style="flex:1.3;text-align:right">CONTROV.</div><div style="flex:1;text-align:right">PESO</div><div style="flex:1.3;text-align:right">P&L</div><div style="flex:1.6;text-align:center">7G</div>
+              <div style="flex:2.2">ASSET</div><div style="flex:1;text-align:right">Q.TÀ</div><div style="flex:1.3;text-align:right">P. MEDIO</div><div style="flex:1.3;text-align:right">P. ATTUALE</div><div style="flex:1.3;text-align:right">VALORE</div><div style="flex:1;text-align:right">PESO</div><div style="flex:1.3;text-align:right">P&L %</div><div style="flex:1.6;text-align:center">SPARK</div>
             </div>
             <sc-for list="{{ holdings }}" as="h" hint-placeholder-count="8">
               <div onClick="{{ h.open }}" style="display:flex;align-items:center;padding:13px 22px;border-bottom:1px solid rgba(255,255,255,0.03);font-variant-numeric:tabular-nums;cursor:pointer" style-hover="background:#171d29">
                 <div style="flex:2.2;display:flex;align-items:center;gap:11px"><div style="width:32px;height:32px;border-radius:9px;background:{{ h.color }}22;border:1px solid {{ h.color }}44;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11.5px;color:{{ h.color }};flex:none">{{ h.initials }}</div><div style="min-width:0"><div style="font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ h.name }}</div><div style="font-size:11px;color:#7b8499;white-space:nowrap">{{ h.ticker }} · {{ h.cls }}</div></div></div>
                 <div style="flex:1;text-align:right;font-size:13px">{{ h.qtyFmt }}</div>
-                <div style="flex:1.3;text-align:right;font-size:13px;color:#aeb6c6">{{ h.avgFmt }}</div>
-                <div style="flex:1.3;text-align:right;font-size:13px">{{ h.priceFmt }}</div>
+                <div style="flex:1.3;text-align:right;font-size:13px;color:{{ h.avgColor }}">{{ h.avgFmt }}</div>
+                <div style="flex:1.3;text-align:right;font-size:13px;font-weight:500;color:{{ h.priceColor }}">{{ h.priceFmt }}</div>
                 <div style="flex:1.3;text-align:right;font-size:13.5px;font-weight:600">{{ h.valueFmt }}</div>
                 <div style="flex:1;text-align:right;font-size:13px;color:#aeb6c6">{{ h.weightFmt }}</div>
                 <div style="flex:1.3;text-align:right"><div style="font-size:13px;font-weight:700;color:{{ h.plColor }}">{{ h.plPctFmt }}</div><div style="font-size:11px;color:{{ h.plColor }}">{{ h.plFmt }}</div></div>
@@ -346,7 +346,7 @@
           <div style="width:300px;flex:none;display:flex;flex-direction:column;gap:18px">
             <div style="background:#131822;border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:20px">
               <div style="font-size:14px;font-weight:700;margin-bottom:14px">Allocazione</div>
-              <div style="display:flex;justify-content:center;margin-bottom:14px"><div style="position:relative;width:150px;height:150px"><svg width="150" height="150" viewBox="0 0 220 220"><circle cx="110" cy="110" r="86" fill="none" stroke="#1c2330" stroke-width="24"/><sc-for list="{{ donutClass }}" as="s" hint-placeholder-count="5"><circle cx="110" cy="110" r="86" fill="none" stroke="{{ s.color }}" stroke-width="24" stroke-dasharray="{{ s.dash }}" stroke-dashoffset="{{ s.offset }}" transform="rotate(-90 110 110)"/></sc-for></svg></div></div>
+              <div style="display:flex;justify-content:center;margin-bottom:14px"><div style="position:relative;width:150px;height:150px"><svg width="150" height="150" viewBox="0 0 220 220"><circle cx="110" cy="110" r="86" fill="none" stroke="#1c2330" stroke-width="24"/><sc-for list="{{ donutClass }}" as="s" hint-placeholder-count="5"><circle cx="110" cy="110" r="86" fill="none" stroke="{{ s.color }}" stroke-width="24" stroke-dasharray="{{ s.dash }}" stroke-dashoffset="{{ s.offset }}" transform="rotate(-90 110 110)"/></sc-for></svg><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none"><div style="font-size:11px;color:#7b8499;font-weight:600">TOTALE</div><div style="font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums">{{ kpi.totalValueFmt }}</div><div style="font-size:11px;font-weight:700;color:{{ kpi.plColor }}">{{ kpi.plPctFmt }}</div></div></div></div>
               <div style="display:flex;flex-direction:column;gap:9px">
                 <sc-for list="{{ classRows }}" as="c" hint-placeholder-count="5"><div onClick="{{ c.on }}" style="display:flex;align-items:center;gap:9px;cursor:pointer;padding:3px 5px;margin:-3px -5px;border-radius:7px" style-hover="background:#1a212e"><span style="width:9px;height:9px;border-radius:3px;background:{{ c.color }}"></span><span style="flex:1;font-size:12.5px;font-weight:600">{{ c.label }}</span><span style="font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums">{{ c.pctFmt }}</span></div></sc-for>
               </div>
@@ -360,6 +360,10 @@
                 <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#7b8499">Rendimento</span><span style="font-weight:700;color:{{ kpi.plColor }};font-variant-numeric:tabular-nums">{{ kpi.plPctFmt }}</span></div>
                 <div style="height:1px;background:rgba(255,255,255,0.06)"></div>
                 <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#7b8499">Posizioni</span><span style="font-weight:600">{{ kpi.count }}</span></div>
+              </div>
+              <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);font-size:11px;color:#5a6275;line-height:1.5">
+                <span style="color:#22D3EE;font-weight:700">·</span> Prezzi live via Yahoo Finance<br/>
+                <span style="color:#5a6275;font-weight:700">~</span> prezzo stimato (no feed live)
               </div>
             </div>
           </div>
@@ -860,10 +864,16 @@ class Component extends DCLogic {
       if (event === 'SIGNED_IN'  && session) await this._loadFromDB(session.user);
       if (event === 'SIGNED_OUT') this.setState({ user: null, tx: [], custom: {}, authLoading: false });
     });
+    this._pricesTimer = setInterval(() => {
+      if (this.state.user && this.state.tx?.length) {
+        this._refreshPrices(this.state.tx.map(t => t.ticker));
+      }
+    }, 5 * 60 * 1000);
   }
 
   componentWillUnmount() {
     this._authSub?.data?.subscription?.unsubscribe();
+    if (this._pricesTimer) clearInterval(this._pricesTimer);
   }
 
   // ── Supabase data loader ──────────────────────────────────────────────────
@@ -1012,6 +1022,7 @@ class Component extends DCLogic {
       tx: [...s.tx, ...(data || []).map(t => ({ ...t, qty: Number(t.qty), price: Number(t.price), fees: Number(t.fees) }))],
       custom, importRows: null, importBroker: '',
     }));
+    this._refreshPrices((data || []).map(t => t.ticker));
   };
 
   submitAdd = async () => {
@@ -1040,6 +1051,7 @@ class Component extends DCLogic {
       tx: [...s.tx, { ...txData, id: data.id }], custom, showAdd: false,
       form: { ...s.form, ticker: '', name: '', qty: '', price: '', fees: '0', broker: '', isin: '', mkt: '', note: '' },
     }));
+    this._refreshPrices([tk]);
   };
 
   delTx = async (id) => {
@@ -1131,10 +1143,18 @@ class Component extends DCLogic {
     const plPct  = invested > 0 ? pl / invested * 100 : 0;
     const dayPct = (totalValue - dayPl) > 0 ? dayPl / (totalValue - dayPl) * 100 : 0;
 
+    const _pctPar = v => v.toFixed(2).replace('.', ',') + '%';
     const holdings = hs.map(h => ({
       ticker: h.ticker, name: h.name, cls: h.cls, color: h.color, initials: this.ini(h.ticker),
-      qtyFmt:    this.num(h.qty),   avgFmt:   this.eur(h.avg),
-      priceFmt:  (h.hasLivePrice ? '' : '~') + this.eur(h.price), valueFmt: this.eur0(h.value),
+      isBond:    h.cls === 'Obbligazioni',
+      qtyFmt:    this.num(h.qty),
+      avgFmt:    h.cls === 'Obbligazioni' ? _pctPar(h.avg * 100) : this.eur(h.avg),
+      avgColor:  h.cls === 'Obbligazioni' ? '#14B8A6' : '#aeb6c6',
+      priceFmt:  h.cls === 'Obbligazioni'
+        ? (h.hasLivePrice ? '' : '~') + _pctPar(h.price)
+        : (h.hasLivePrice ? '' : '~') + this.eur(h.price),
+      priceColor: h.cls === 'Obbligazioni' ? '#14B8A6' : (h.hasLivePrice ? '#E8ECF4' : '#7b8499'),
+      valueFmt:  this.eur0(h.value),
       plFmt:     (h.pl >= 0 ? '+' : '') + this.eur0(h.pl),
       plPctFmt:  this.pct(h.plPct), plColor: h.plPct >= 0 ? G : R,
       dayPctFmt: this.pct(h.day),
@@ -1225,7 +1245,8 @@ class Component extends DCLogic {
         type: t.type, isBuy: buy, isSell: !buy,
         badgeBg: buy ? 'rgba(63,214,140,0.13)' : 'rgba(242,89,107,0.13)', badgeFg: buy ? G : R,
         ticker: t.ticker, name: m.name, color: this.CLS[m.cls] || '#5A6678', initials: this.ini(t.ticker),
-        qtyFmt:   this.num(t.qty),   priceFmt: this.eur(t.price),
+        qtyFmt:   this.num(t.qty),
+        priceFmt: m.cls === 'Obbligazioni' ? Number(t.price).toFixed(2).replace('.', ',') + '%' : this.eur(t.price),
         totalFmt: this.eur0(this.eff(m.cls, Number(t.qty), Number(t.price))), feesFmt: this.eur(t.fees), broker: t.broker || '—',
         rowCursor: buy ? 'default' : 'pointer',
         expanded:  exp, chevRot: exp ? 'rotate(90deg)' : 'rotate(0deg)',
@@ -1260,14 +1281,18 @@ class Component extends DCLogic {
               dateFmt:  new Date(t.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }),
               type: t.type,
               badgeBg: buy ? 'rgba(63,214,140,0.13)' : 'rgba(242,89,107,0.13)', badgeFg: buy ? G : R,
-              qtyFmt: this.num(t.qty), priceFmt: this.eur(t.price),
+              qtyFmt: this.num(t.qty),
+              priceFmt: h.cls === 'Obbligazioni' ? Number(t.price).toFixed(2).replace('.', ',') + '%' : this.eur(t.price),
               totalFmt: this.eur0(this.eff(h.cls, Number(t.qty), Number(t.price))), broker: t.broker || '—',
             };
           });
         assetDetail = {
           ticker: h.ticker, name: h.name, cls: h.cls, color: h.color, initials: this.ini(h.ticker), isin: h.isin || '—',
-          priceFmt: (h.hasLivePrice ? '' : '~') + this.eur(h.price), dayFmt: this.pct(h.day), dayColor: h.day >= 0 ? G : R,
-          valueFmt: this.eur0(h.value),  investedFmt: this.eur0(h.cost), avgFmt: this.eur(h.avg), qtyFmt: this.num(h.qty),
+          priceFmt: (h.hasLivePrice ? '' : '~') + (h.cls === 'Obbligazioni' ? h.price.toFixed(2).replace('.', ',') + '%' : this.eur(h.price)),
+          dayFmt: this.pct(h.day), dayColor: h.day >= 0 ? G : R,
+          valueFmt: this.eur0(h.value),  investedFmt: this.eur0(h.cost),
+          avgFmt: h.cls === 'Obbligazioni' ? (h.avg * 100).toFixed(2).replace('.', ',') + '%' : this.eur(h.avg),
+          qtyFmt: this.num(h.qty),
           plFmt:    (h.pl >= 0 ? '+' : '') + this.eur0(h.pl), plPctFmt: this.pct(h.plPct), plColor: h.plPct >= 0 ? G : R,
           weightFmt: (assetValue > 0 ? h.value / assetValue * 100 : 0).toFixed(1).replace('.', ',') + '%',
           line: ser.line, area: ser.area, endY: ser.endY, chartColor: h.plPct >= 0 ? '#3FD68C' : '#F2596B',
@@ -1313,7 +1338,7 @@ class Component extends DCLogic {
     const cur          = fy.find(r => r.year === curYear);
     const latestPool   = fy.length ? fy[fy.length - 1].pool : [];
     const zainettoNow  = latestPool.reduce((a, p) => a + p.residuo, 0);
-    const nowYear      = 2026;
+    const nowYear      = new Date().getFullYear();
     const zainettoRows = latestPool.map(p => {
       const yrsLeft = p.expires - nowYear;
       return {
