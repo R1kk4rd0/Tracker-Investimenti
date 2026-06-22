@@ -8,8 +8,8 @@
 <script src="./transactions.js?v=20260619"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./config.js?v=20260619"></script>
-<script src="./import.js?v=20260619"></script>
-<script src="./prices.js?v=20260619"></script>
+<script src="./import.js?v=20260622"></script>
+<script src="./prices.js?v=20260622"></script>
 </head>
 <body>
 <x-dc>
@@ -458,6 +458,20 @@
       <!-- ============ TRANSAZIONI ============ -->
       <sc-if value="{{ isTx }}" hint-placeholder-val="{{ true }}">
       <div style="display:flex;flex-direction:column;gap:16px">
+
+        <sc-if value="{{ hasMigration }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:12px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex:none"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#FBB924" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span style="font-size:13px;color:#cdd4e0;flex:1"><strong style="color:#FBB924">{{ migrationCount }} transazioni</strong> con asset in valuta estera senza cambio storico — il PMC potrebbe essere errato.</span>
+          <sc-if value="{{ migrateLoading }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:#7b8499"><div style="width:12px;height:12px;border-radius:50%;border:2px solid #FBB924;border-top-color:transparent;animation:spin 0.75s linear infinite"></div>Recupero cambi BCE...</div>
+          </sc-if>
+          <sc-if value="{{ !migrateLoading }}" hint-placeholder-val="{{ true }}">
+            <div onClick="{{ doMigrate }}" style="padding:7px 14px;border-radius:8px;background:#FBB924;color:#0A0D14;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="opacity:0.85">Correggi cambi →</div>
+          </sc-if>
+        </div>
+        </sc-if>
+
         <div style="display:flex;align-items:center;gap:10px">
           <div style="display:flex;gap:3px;background:#10151f;border:1px solid rgba(255,255,255,0.06);border-radius:11px;padding:3px">
             <sc-for list="{{ txFilters }}" as="t" hint-placeholder-count="5"><div onClick="{{ t.on }}" style="padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;background:{{ t.bg }};color:{{ t.fg }}">{{ t.label }}</div></sc-for>
@@ -836,7 +850,7 @@
           <input value="{{ form.qty }}" onInput="{{ f.qty }}" placeholder="0" inputmode="decimal" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px;font-variant-numeric:tabular-nums"/>
         </div>
         <div>
-          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Prezzo unitario (€)</label>
+          <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Prezzo unitario ({{ form.priceCurrency }})</label>
           <input value="{{ form.price }}" onInput="{{ f.price }}" placeholder="0,00" inputmode="decimal" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px;font-variant-numeric:tabular-nums"/>
         </div>
         <div>
@@ -855,6 +869,24 @@
           <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Prezzo attuale (opz.)</label>
           <input value="{{ form.mkt }}" onInput="{{ f.mkt }}" placeholder="se nuovo asset" inputmode="decimal" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px;font-variant-numeric:tabular-nums"/>
         </div>
+        <sc-if value="{{ form.hasConversion }}" hint-placeholder-val="{{ false }}">
+        <div style="grid-column:1/-1;background:#0d121b;border:1px solid rgba(34,211,238,0.2);border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:10px;min-height:44px">
+          <sc-if value="{{ form.fxLoading }}" hint-placeholder-val="{{ false }}">
+            <div style="width:12px;height:12px;border-radius:50%;border:2px solid #22D3EE;border-top-color:transparent;animation:spin 0.75s linear infinite;flex:none"></div>
+            <span style="font-size:12.5px;color:#7b8499">Recupero cambio storico BCE...</span>
+          </sc-if>
+          <sc-if value="{{ !form.fxLoading }}" hint-placeholder-val="{{ true }}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="flex:none"><path d="M7 16L3 12l4-4M17 8l4 4-4 4M14 4l-4 16" stroke="#22D3EE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span style="font-size:12px;color:#7b8499;flex:1">Cambio BCE · 1 {{ form.currency }} =</span>
+            <input value="{{ form.fxRate }}" onInput="{{ f.fxRate }}" placeholder="0.000000" inputmode="decimal" style="width:96px;background:#161d2b;border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:5px 9px;color:#E8ECF4;font-size:13px;font-variant-numeric:tabular-nums;text-align:right"/>
+            <span style="font-size:12px;color:#7b8499">EUR</span>
+            <sc-if value="{{ form.perShareEurFmt }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:13px;font-weight:700;color:#22D3EE;font-variant-numeric:tabular-nums;margin-left:4px">= {{ form.perShareEurFmt }}/az.</span>
+            </sc-if>
+          </sc-if>
+        </div>
+        </sc-if>
+
         <div style="grid-column:1 / -1">
           <label style="font-size:12px;color:#8A93A6;font-weight:600;display:block;margin-bottom:6px">Note (opz.)</label>
           <input value="{{ form.note }}" onInput="{{ f.note }}" placeholder="Promemoria…" style="width:100%;background:#0d121b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 13px;color:#E8ECF4;font-size:14px"/>
@@ -914,7 +946,8 @@ class Component extends DCLogic {
       type: 'Acquisto', date: '2026-06-18',
       ticker: '', name: '', cls: 'Azioni',
       qty: '', price: '', fees: '0',
-      currency: 'EUR', broker: '', isin: '', mkt: '', note: '',
+      currency: 'EUR', fxRate: '', fxLoading: false,
+      broker: '', isin: '', mkt: '', note: '',
       aliquota: '26',
     },
     tx: [...window.INITIAL_TX],
@@ -927,6 +960,7 @@ class Component extends DCLogic {
     editTxId: null, txBrokerFilter: 'Tutti',
     // prezzi live
     livePrices: {}, pricesLoading: false, pricesTs: null,
+    migrateLoading: false,
     // lookup strumento
     lookupLoading: false, lookupResult: null,
     // pannello prezzi manuali
@@ -964,8 +998,9 @@ class Component extends DCLogic {
       const m = this.getMkt(t.ticker, t);
       const h = H[t.ticker] || (H[t.ticker] = { ticker: t.ticker, name: m.name, cls: m.cls, isin: m.isin || '', qty: 0, cost: 0, _fallbackPrice: 0 });
       const q = Number(t.qty) || 0, p = Number(t.price) || 0, f = Number(t.fees) || 0;
+      const fx = (t.currency && t.currency !== 'EUR' && t.fx_rate) ? Number(t.fx_rate) : 1;
       if (t.type === 'Acquisto') {
-        h.qty += q; h.cost += this.eff(m.cls, q, p) + f;
+        h.qty += q; h.cost += (this.eff(m.cls, q, p) + f) * fx;
         h._fallbackPrice = p; // ultimo prezzo di acquisto noto — usato se non abbiamo prezzo live
       } else {
         const avg = h.qty > 0 ? h.cost / h.qty : 0; h.cost -= avg * q; h.qty -= q;
@@ -1158,6 +1193,53 @@ class Component extends DCLogic {
     }));
   };
 
+  // ── Migrazione cambi storici per transazioni pre-esistenti ───────────────
+
+  _migrateHistoricalFx = async () => {
+    const { tx, user } = this.state;
+    const USD_SET = new Set(['AAPL','NVDA','GOOG','GOOGL','MSFT','IBM','PYPL','AMZN','META','TSLA','NFLX','AMGN','INTC','AMD','BABA','JPM','BAC','V','MA','BA','STLA','BTC','ETH','SOL','ADA','GOLD','SLVR']);
+    const _getNative = (tk) => {
+      if (window.PRICES?.getTickerNativeCurrency) return window.PRICES.getTickerNativeCurrency(tk);
+      return USD_SET.has(tk) ? 'USD' : null;
+    };
+    const candidates = tx.filter(t =>
+      (!t.currency || t.currency === 'EUR') && t.fx_rate == null && USD_SET.has(t.ticker)
+    );
+    if (!candidates.length) { alert('Nessuna transazione da correggere.'); return; }
+    if (!confirm(`Trovate ${candidates.length} transazioni con possibile prezzo in valuta estera.\nRecupero i cambi storici BCE e aggiorno il database — procedo?`)) return;
+    this.setS({ migrateLoading: true });
+    const updates = [];
+    for (const t of candidates) {
+      const native = _getNative(t.ticker) || 'USD';
+      const cur = native === 'GBp' ? 'GBP' : native;
+      const rate = await window.PRICES?.fetchHistoricalFxRate(t.date, cur);
+      if (rate) updates.push({ id: t.id, currency: native, fx_rate: rate });
+      await new Promise(r => setTimeout(r, 120));
+    }
+    for (const u of updates) {
+      await window._sb.from('transactions').update({ currency: u.currency, fx_rate: u.fx_rate }).eq('id', u.id).eq('user_id', user.id);
+    }
+    this.setState(s => ({
+      tx: s.tx.map(t => { const u = updates.find(x => x.id === t.id); return u ? { ...t, ...u } : t; }),
+      migrateLoading: false,
+    }));
+    alert(`✓ Corrette ${updates.length} transazioni su ${candidates.length} candidati.`);
+  };
+
+  // ── Cambio storico per il form ────────────────────────────────────────────
+
+  _fetchFxForForm = async (date, currency) => {
+    if (!currency || currency === 'EUR' || !date) {
+      this.setState(s => ({ form: { ...s.form, fxRate: '', fxLoading: false } }));
+      return;
+    }
+    this.setState(s => ({ form: { ...s.form, fxLoading: true } }));
+    const rate = await window.PRICES?.fetchHistoricalFxRate(date, currency);
+    this.setState(s => ({
+      form: { ...s.form, fxLoading: false, fxRate: rate != null ? String(rate.toFixed(6)) : s.form.fxRate },
+    }));
+  };
+
   // ── Prezzi manuali (custom_assets) ────────────────────────────────────────
 
   _openPriceEdit = (ticker) => {
@@ -1202,6 +1284,8 @@ class Component extends DCLogic {
         name: t.name || '', cls: t.cls || 'Azioni',
         qty: String(t.qty), price: String(t.price),
         fees: String(t.fees || 0), currency: t.currency || 'EUR',
+        fxRate: t.fx_rate != null ? String(t.fx_rate) : '',
+        fxLoading: false,
         broker: t.broker || '', isin: t.isin || '',
         mkt: '', note: t.note || '',
         aliquota: t.aliquota || '26',
@@ -1213,6 +1297,7 @@ class Component extends DCLogic {
     const { editTxId, form: f } = this.state;
     const q = Number(String(f.qty).replace(',', '.')), p = Number(String(f.price).replace(',', '.'));
     if (!f.ticker || !q || !p) return;
+    const fxNum = f.currency !== 'EUR' ? (Number(String(f.fxRate).replace(',', '.')) || null) : null;
     const updates = {
       date: f.date, type: f.type, ticker: f.ticker.toUpperCase(),
       name: f.name, cls: f.cls, qty: q, price: p,
@@ -1220,6 +1305,7 @@ class Component extends DCLogic {
       currency: f.currency, broker: f.broker || '—',
       isin: f.isin || '', note: f.note || '',
       aliquota: f.type === 'Vendita' ? f.aliquota : null,
+      fx_rate: fxNum,
     };
     const { error } = await window._sb.from('transactions').update(updates).eq('id', editTxId);
     if (error) { console.error('update error:', error.message); return; }
@@ -1312,6 +1398,7 @@ class Component extends DCLogic {
       custom[tk] = newAsset;
       await window._sb.from('custom_assets').upsert([{ user_id: this.state.user.id, ticker: tk, ...newAsset }]);
     }
+    const fxNum = f.currency !== 'EUR' ? (Number(String(f.fxRate).replace(',', '.')) || null) : null;
     const txData = {
       user_id: this.state.user.id,
       date: f.date, type: f.type, ticker: tk,
@@ -1319,6 +1406,7 @@ class Component extends DCLogic {
       currency: f.currency, broker: f.broker || '—',
       isin: f.isin, note: f.note, name: f.name, cls: f.cls,
       aliquota: f.type === 'Vendita' ? f.aliquota : null,
+      fx_rate: fxNum,
     };
     const { data, error } = await window._sb.from('transactions').insert([txData]).select().single();
     if (error) { console.error('submitAdd:', error.message); return; }
@@ -1684,8 +1772,9 @@ class Component extends DCLogic {
   _buildForm(S, hs) {
     const G = '#3FD68C', R = '#F2596B';
     const f  = S.form;
-    const fq = Number(String(f.qty).replace(',', '.'))   || 0;
-    const fp = Number(String(f.price).replace(',', '.')) || 0;
+    const fq  = Number(String(f.qty).replace(',', '.'))   || 0;
+    const fp  = Number(String(f.price).replace(',', '.')) || 0;
+    const fxN = (f.currency !== 'EUR' && f.fxRate) ? (Number(String(f.fxRate).replace(',', '.')) || 1) : 1;
     const valid  = f.ticker && fq > 0 && fp > 0;
     const isBuy  = f.type === 'Acquisto';
     const fHold  = hs.find(h => h.ticker === (f.ticker || '').toUpperCase());
@@ -1707,7 +1796,12 @@ class Component extends DCLogic {
       sellBg:     !isBuy ? 'rgba(242,89,107,0.14)' : '#0d121b',
       sellFg:     !isBuy ? R : '#7b8499',
       sellBorder: !isBuy ? 'rgba(242,89,107,0.4)'  : 'rgba(255,255,255,0.08)',
-      previewFmt:    this.eur(this.eff(f.cls, fq, fp)),
+      previewFmt:    this.eur(this.eff(f.cls, fq, fp) * fxN),
+      hasConversion: f.currency !== 'EUR',
+      priceCurrency: f.currency !== 'EUR' ? f.currency : '€',
+      fxLoading:     !!f.fxLoading,
+      fxFmt:         fxN !== 1 ? fxN.toFixed(4).replace('.', ',') : '—',
+      perShareEurFmt: (fp > 0 && fxN !== 1) ? this.eur(fp * fxN) : '',
       submitBg:      valid ? '#22D3EE' : '#1c4750',
       submitOpacity: valid ? '1' : '0.5',
       isSell: !isBuy, hasCarico: !isBuy && !!fHold,
@@ -1768,8 +1862,9 @@ class Component extends DCLogic {
       },
       name:       (e) => this.setForm('name',     e.target.value),
       cls:        (e) => this.setState(s => ({ form: { ...s.form, cls: e.target.value, aliquota: e.target.value === 'Obbligazioni' ? '12.5' : '26' } })),
-      date:       (e) => this.setForm('date',     e.target.value),
-      currency:   (e) => this.setForm('currency', e.target.value),
+      date:     (e) => { this.setForm('date', e.target.value); this._fetchFxForForm(e.target.value, this.state.form.currency); },
+      currency: (e) => { this.setForm('currency', e.target.value); this._fetchFxForForm(this.state.form.date, e.target.value); },
+      fxRate:   (e) => this.setForm('fxRate', e.target.value),
       qty:        (e) => this.setForm('qty',      e.target.value),
       price:      (e) => this.setForm('price',    e.target.value),
       fees:       (e) => this.setForm('fees',     e.target.value),
@@ -1862,6 +1957,10 @@ class Component extends DCLogic {
       closeClass: () => this.setS({ selClass: null }),
       // transazioni
       txList, txCount: S.tx.length, txFilter: S.txFilter,
+      migrationCount: (() => { try { const usd = new Set(['AAPL','NVDA','GOOG','GOOGL','MSFT','IBM','PYPL','AMZN','META','TSLA','NFLX','AMGN','INTC','AMD','BABA','JPM','BAC','V','MA','BA','STLA','BTC','ETH','SOL','ADA','GOLD','SLVR']); return (S.tx||[]).filter(t => (!t.currency || t.currency === 'EUR') && t.fx_rate == null && usd.has(t.ticker)).length; } catch(e) { return 0; } })(),
+      hasMigration: (() => { try { const usd = new Set(['AAPL','NVDA','GOOG','GOOGL','MSFT','IBM','PYPL','AMZN','META','TSLA','NFLX','AMGN','INTC','AMD','BABA','JPM','BAC','V','MA','BA','STLA','BTC','ETH','SOL','ADA','GOLD','SLVR']); return (S.tx||[]).some(t => (!t.currency || t.currency === 'EUR') && t.fx_rate == null && usd.has(t.ticker)); } catch(e) { return false; } })(),
+      migrateLoading: S.migrateLoading,
+      doMigrate: this._migrateHistoricalFx,
       // fisco
       ...fiscoView,
       // form

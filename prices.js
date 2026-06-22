@@ -22,6 +22,7 @@ const _YF = {
   'AMZN': 'AMZN',  'META': 'META',  'TSLA': 'TSLA',  'NFLX': 'NFLX',
   'AMGN': 'AMGN',  'INTC': 'INTC',  'AMD':  'AMD',   'BABA': 'BABA',
   'JPM':  'JPM',   'BAC':  'BAC',   'V':    'V',     'MA':   'MA',
+  'BA':   'BA',    'GS':   'GS',    'MS':   'MS',    'WMT':  'WMT',
   // Azioni EU (EUR)
   'ASML': 'ASML.AS',
   // Crypto (USD → EUR)
@@ -83,6 +84,19 @@ async function fetchLivePrices(tickers) {
   return out;
 }
 
+// Cambio storico BCE per una data specifica (frankfurter.app, gratuito, nessuna API key)
+async function fetchHistoricalFxRate(date, currency) {
+  if (!currency || currency === 'EUR') return 1;
+  try {
+    const iso = (date || '').slice(0, 10);
+    if (!iso) return null;
+    const r = await fetch(`https://api.frankfurter.app/${iso}?from=${currency}&to=EUR`);
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d.rates?.EUR ?? null;
+  } catch { return null; }
+}
+
 // Ricerca strumento per ticker o ISIN tramite Edge Function → Yahoo Finance search
 async function searchInstrument(query) {
   query = (query || '').trim().toUpperCase();
@@ -111,4 +125,13 @@ async function searchInstrument(query) {
   } catch { return null; }
 }
 
-window.PRICES = { fetchLivePrices, registerTicker, searchInstrument };
+function getTickerNativeCurrency(ticker) {
+  const sym = _YF[ticker];
+  if (!sym) return null;
+  if (['.AS', '.DE', '.PA', '.MI'].some(s => sym.endsWith(s))) return 'EUR';
+  if (sym.endsWith('.L')) return 'GBp';
+  if (sym.endsWith('.SW')) return 'CHF';
+  return 'USD';
+}
+
+window.PRICES = { fetchLivePrices, registerTicker, searchInstrument, fetchHistoricalFxRate, getTickerNativeCurrency };

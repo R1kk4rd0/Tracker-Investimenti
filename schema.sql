@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   note        TEXT,
   aliquota    TEXT,
   exchange    TEXT    DEFAULT '',
+  fx_rate     NUMERIC DEFAULT NULL,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -28,6 +29,9 @@ ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "utenti vedono le proprie transazioni" ON transactions
   FOR ALL USING (auth.uid() = user_id);
+
+-- Migrazione: aggiungi fx_rate se la tabella esiste già
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS fx_rate NUMERIC DEFAULT NULL;
 
 -- Tabella asset custom (ticker non presenti in MARKET_DATA)
 CREATE TABLE IF NOT EXISTS custom_assets (
