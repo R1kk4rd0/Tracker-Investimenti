@@ -15,7 +15,8 @@ const _YF = {
   // Vanguard ETF
   'VEUR': 'VEUR.AS', 'VFEM': 'VFEM.AS', 'VDEA': 'VDEA.L',
   // Amundi / Lyxor ETF
-  'AMEA': 'AMEA.DE', 'CW8': 'CW8.PA', 'LYXD': 'LYXD.PA', 'CBU7': 'CBU7.DE',
+  'AMEA': 'AMEA.DE', 'CW8': 'CW8.PA', 'LYXD': 'MTD.PA',
+  'CBU7': 'CSBGU7.SW', // iShares $ Treasury Bond 3-7YR UCITS ETF USD A — CBU7.DE non risponde su YF
   // Azioni US (USD → convertiti in EUR)
   'NVDA': 'NVDA',  'AAPL': 'AAPL',  'GOOG': 'GOOG',  'GOOGL': 'GOOGL',
   'MSFT': 'MSFT',  'IBM':  'IBM',   'PYPL': 'PYPL',  'STLA': 'STLA',
@@ -30,7 +31,7 @@ const _YF = {
   'ABTC': 'ABTC.SW',
   // Materie prime (USD)
   'GOLD': 'GC=F', 'PHAU': 'PHAU.L', 'SLVR': 'SI=F',
-  '8PSD': '8PSD.DE',  // Invesco Physical Gold ETC, ISIN IE00B579F325
+  '8PSD': 'SGLD.L',   // Invesco Physical Gold ETC USD — SGLD.L (LSE) = stesso ISIN IE00B579F325, funziona su YF
 };
 
 const _EDGE_URL  = 'https://qpmwcydwsbfztxkivndk.supabase.co/functions/v1/prices';
@@ -50,12 +51,31 @@ async function _fetchFxToEur() {
 
 function registerTicker(tk, sym) { _YF[tk] = sym; }
 
-async function fetchLivePrices(tickers) {
-  const pairs = [...new Set((tickers || []).filter(t => _YF[t]))].map(t => [t, _YF[t]]);
-  if (!pairs.length) return {};
+async function fetchLivePrices(tickers, isinMap = {}) {
+  const uniq = [...new Set(tickers || [])];
 
-  const symbols      = pairs.map(([, sym]) => sym);
-  const tickerBySym  = Object.fromEntries(pairs.map(([tk, sym]) => [sym, tk]));
+  // Ticker con simbolo YF noto → Yahoo Finance
+  const pairs       = uniq.filter(t => _YF[t]).map(t => [t, _YF[t]]);
+  const tickerBySym = Object.fromEntries(pairs.map(([tk, sym]) => [sym, tk]));
+  const symbols     = pairs.map(([, sym]) => sym);
+
+  // Ticker senza simbolo YF ma con ISIN → Boerse Frankfurt tramite Edge Function
+  const isinRequests = uniq
+    .filter(t => !_YF[t] && isinMap[t])
+    .map(t => ({ ticker: t, isin: isinMap[t] }));
+
+  if (!symbols.length && !isinRequests.length) return {};
+
+  // Per i ticker YF che hanno anche un ISIN: mappa yfSym→isin per il fallback BF
+  const isinFallback = {};
+  for (const [tk, sym] of pairs) {
+    if (isinMap[tk]) isinFallback[sym] = isinMap[tk];
+  }
+
+  const body = {};
+  if (symbols.length)                body.symbols       = symbols;
+  if (isinRequests.length)           body.isinRequests  = isinRequests;
+  if (Object.keys(isinFallback).length) body.isinFallback = isinFallback;
 
   const [raw, fx] = await Promise.all([
     fetch(_EDGE_URL, {
@@ -65,15 +85,16 @@ async function fetchLivePrices(tickers) {
         'Authorization': `Bearer ${_ANON_KEY}`,
         'apikey':        _ANON_KEY,
       },
-      body: JSON.stringify({ symbols }),
+      body: JSON.stringify(body),
     }).then(r => r.json()).catch(() => ({})),
     _fetchFxToEur(),
   ]);
 
   const out = {};
-  for (const [sym, data] of Object.entries(raw || {})) {
-    const tk = tickerBySym[sym];
-    if (!tk || !data?.price) continue;
+  for (const [key, data] of Object.entries(raw || {})) {
+    // key è il simbolo YF oppure il ticker diretto (per risultati BF)
+    const tk = tickerBySym[key] ?? key;
+    if (!data?.price) continue;
     let { price, currency, day } = data;
     if (currency !== 'EUR') {
       const rate = fx[currency === 'GBp' ? 'GBp' : currency];

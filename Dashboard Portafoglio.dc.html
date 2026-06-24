@@ -981,11 +981,21 @@ class Component extends DCLogic {
 
   // ── Market helpers ─────────────────────────────────────────────────────────
 
+  _fmtName(n) {
+    if (!n) return n;
+    const UP = new Set(['ETF','ETC','ETN','UCITS','ACC','DIST','EUR','USD','GBP','CHF','JPY','MTN','BTP','EM','ESG','MSCI','II','III','IV','MKTS','GOVT','BD','MKT','S&P']);
+    return n.split(' ').map(w => {
+      if (UP.has(w)) return w;
+      if (/^\d/.test(w)) return w;
+      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+    }).join(' ');
+  }
+
   getMkt(tk, t) {
     const lp = (this.state.livePrices || {})[tk];
     const m  = this.MARKET[tk] || this.state.custom[tk];
-    if (m)  return lp ? { ...m,   price: lp.price, day: lp.day } : m;
-    const base = { name: (t && t.name) || tk, cls: (t && t.cls) || 'Azioni', price: (t && Number(t.price)) || 0, day: 0, isin: '' };
+    if (m)  return lp ? { ...m, name: this._fmtName(m.name), price: lp.price, day: lp.day } : { ...m, name: this._fmtName(m.name) };
+    const base = { name: this._fmtName((t && t.name) || tk), cls: (t && t.cls) || 'Azioni', price: (t && Number(t.price)) || 0, day: 0, isin: '' };
     return lp ? { ...base, price: lp.price, day: lp.day } : base;
   }
 
@@ -1000,7 +1010,7 @@ class Component extends DCLogic {
       const q = Number(t.qty) || 0, p = Number(t.price) || 0, f = Number(t.fees) || 0;
       const fx = (t.currency && t.currency !== 'EUR' && t.fx_rate) ? Number(t.fx_rate) : 1;
       if (t.type === 'Acquisto') {
-        h.qty += q; h.cost += (this.eff(m.cls, q, p) + f) * fx;
+        h.qty += q; h.cost += this.eff(m.cls, q, p) * fx;
         h._fallbackPrice = p; // ultimo prezzo di acquisto noto — usato se non abbiamo prezzo live
       } else {
         const avg = h.qty > 0 ? h.cost / h.qty : 0; h.cost -= avg * q; h.qty -= q;
@@ -1157,7 +1167,15 @@ class Component extends DCLogic {
     const list = tickers || this.state.tx.map(t => t.ticker);
     if (!list.length) return;
     this.setState({ pricesLoading: true });
-    const lp = await window.PRICES.fetchLivePrices(list);
+    // Costruisce mappa ticker→ISIN per il fallback Boerse Frankfurt
+    const isinMap = {};
+    for (const t of (this.state.tx || [])) {
+      if (t.isin && !isinMap[t.ticker]) isinMap[t.ticker] = t.isin;
+    }
+    for (const [tk, a] of Object.entries(this.state.custom || {})) {
+      if (a.isin && !isinMap[tk]) isinMap[tk] = a.isin;
+    }
+    const lp = await window.PRICES.fetchLivePrices(list, isinMap);
     const ts = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
     this.setState({ livePrices: lp, pricesLoading: false, pricesTs: ts });
   };
@@ -1175,10 +1193,18 @@ class Component extends DCLogic {
   _applyLookup = () => {
     const r = this.state.lookupResult;
     if (!r || r.error) return;
-    // Il ticker utente è il simbolo Yahoo senza suffisso borsa (.DE/.AS/.PA/.L ecc.)
+    const isEdit = !!this.state.editTxId;
+    if (isEdit) {
+      // In modifica: aggiorna solo l'ISIN, non toccare ticker/nome/classe
+      this.setState(s => ({ lookupResult: null, form: { ...s.form, isin: r.isin || s.form.isin } }));
+      return;
+    }
+    // Nuova transazione: compila tutti i campi
     const tk = (r.symbol || '').replace(/\.(DE|AS|PA|L|SW|MI|OL|ST|CO|HE|BR|VI|MC|LS|WA|PR|BU)$/i, '') || this.state.form.ticker;
-    // Registra il simbolo Yahoo per i prezzi live
     if (window.PRICES?.registerTicker) window.PRICES.registerTicker(tk.toUpperCase(), r.symbol);
+    // Se l'utente ha cercato per ISIN, preservalo nel campo isin anche se YF non lo restituisce
+    const queryWasIsin = /^[A-Z]{2}[A-Z0-9]{8,10}$/i.test(this.state.form.ticker || '');
+    const isinVal = r.isin || (queryWasIsin ? (this.state.form.ticker || '').toUpperCase() : '') || this.state.form.isin;
     this.setState(s => ({
       lookupResult: null,
       form: {
@@ -1186,7 +1212,7 @@ class Component extends DCLogic {
         ticker: tk.toUpperCase(),
         name:   r.name  || s.form.name,
         cls:    r.cls   || s.form.cls,
-        isin:   r.isin  || s.form.isin,
+        isin:   isinVal,
         mkt:    r.priceEur ? String(r.priceEur.toFixed(4)) : s.form.mkt,
         aliquota: (r.cls === 'Obbligazioni') ? '12.5' : '26',
       },
@@ -1208,11 +1234,31 @@ class Component extends DCLogic {
     if (!candidates.length) { alert('Nessuna transazione da correggere.'); return; }
     if (!confirm(`Trovate ${candidates.length} transazioni con possibile prezzo in valuta estera.\nRecupero i cambi storici BCE e aggiorno il database — procedo?`)) return;
     this.setS({ migrateLoading: true });
+    const _fetchRate = async (date, cur) => {
+      try {
+        const iso = (date || '').slice(0, 10);
+        if (!iso || cur === 'EUR') return 1;
+        const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        let rate;
+        if (isLocal) {
+          const r = await fetch(`/api/fx/historical?date=${iso}&from=${cur}`);
+          if (!r.ok) return null;
+          const d = await r.json();
+          rate = d.rate;
+        } else {
+          const r = await fetch(`https://api.frankfurter.app/${iso}?from=${cur}&to=EUR`);
+          if (!r.ok) return null;
+          const d = await r.json();
+          rate = d.rates?.EUR ?? null;
+        }
+        return rate ?? null;
+      } catch(e) { return null; }
+    };
     const updates = [];
     for (const t of candidates) {
       const native = _getNative(t.ticker) || 'USD';
       const cur = native === 'GBp' ? 'GBP' : native;
-      const rate = await window.PRICES?.fetchHistoricalFxRate(t.date, cur);
+      const rate = await _fetchRate(t.date, cur);
       if (rate) updates.push({ id: t.id, currency: native, fx_rate: rate });
       await new Promise(r => setTimeout(r, 120));
     }
@@ -1563,7 +1609,7 @@ class Component extends DCLogic {
     }));
 
     // donut
-    const palette = ['#5B9DF9', '#A78BFA', '#14B8A6', '#E5B567', '#F2596B', '#22D3EE', '#F59E0B', '#94A3B8'];
+    const palette = ['#5B9DF9', '#A78BFA', '#14B8A6', '#E5B567', '#F2596B', '#22D3EE', '#F59E0B', '#94A3B8', '#34D399', '#FB923C'];
     let donut, legend;
     if (S.allocBy === 'classe') {
       const segs = this.donutSegs(classArr).map(s => ({
@@ -1572,9 +1618,7 @@ class Component extends DCLogic {
       }));
       donut = segs; legend = segs;
     } else {
-      const topI = hs.slice(0, 7).map((h, i) => ({ label: h.name, value: h.value, color: palette[i % palette.length], ticker: h.ticker }));
-      const rest = hs.slice(7).reduce((a, h) => a + h.value, 0);
-      if (rest > 0) topI.push({ label: 'Altri', value: rest, color: '#64748B' });
+      const topI = hs.map((h, i) => ({ label: h.name, value: h.value, color: palette[i % palette.length], ticker: h.ticker }));
       topI.push({ label: 'Liquidità', value: this.CASH, color: '#3a4150' });
       const segs = this.donutSegs(topI).map(s => ({
         ...s, valueFmt: this.eur0(s.value), pctFmt: s.pct.toFixed(1).replace('.', ',') + '%',
@@ -1585,13 +1629,10 @@ class Component extends DCLogic {
     const donutClass = this.donutSegs(classArr);
 
     // top / flop
-    const sortedReal = [...hs].sort((a, b) => b.plPct - a.plPct).map(h => ({
-      name: h.name, ticker: h.ticker, initials: this.ini(h.ticker), color: h.color,
-      valueFmt: this.eur0(h.value), plPctFmt: this.pct(h.plPct), plColor: h.plPct >= 0 ? G : R,
-      open: () => this._openAsset(h.ticker),
-    }));
-    const top  = sortedReal.slice(0, 5);
-    const flop = sortedReal.slice(-5).reverse();
+    const _mapH = h => ({ name: h.name, ticker: h.ticker, initials: this.ini(h.ticker), color: h.color, valueFmt: this.eur0(h.value), plPctFmt: this.pct(h.plPct), plColor: h.plPct >= 0 ? G : R, open: () => this._openAsset(h.ticker) });
+    const sortedReal = [...hs].sort((a, b) => b.plPct - a.plPct);
+    const top  = sortedReal.filter(h => h.plPct > 0).slice(0, 5).map(_mapH);
+    const flop = sortedReal.filter(h => h.plPct < 0).slice(-5).reverse().map(_mapH);
 
     const history = this.buildHistory(S.range, totalValue);
 
